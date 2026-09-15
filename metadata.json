@@ -1,0 +1,6 @@
+{
+  "name": "Portal de Notícias",
+  "description": "Portal completo, moderno e responsivo de notícias com painel administrativo, gerenciamento de matérias, banners, categorias, identidade visual e integração com Facebook e YouTube.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
