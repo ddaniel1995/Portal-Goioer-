@@ -428,6 +428,7 @@ export const initialVisualIdentity: VisualIdentity = {
   siteName: 'PORTAL NOTÍCIAS',
   tagline: 'Jornalismo independente, ágil e com credibilidade',
   description: 'O seu portal diário de informações com cobertura abrangente de política, economia, educação, saúde, esportes e cultura com compromisso ético e verdade.',
+  logoDisplayMode: 'both',
   logoColorUrl: '', // Uses dynamic modern SVG logo if empty, or uploaded data/image URL
   logoMonoUrl: '',
   contactEmail: 'redacao@portalnoticias.com.br',

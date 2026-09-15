@@ -1,5 +1,5 @@
 import React from 'react';
-import { VisualIdentity } from '../types';
+import { VisualIdentity, LogoDisplayMode } from '../types';
 
 interface LogoProps {
   identity: VisualIdentity;
@@ -10,61 +10,147 @@ interface LogoProps {
 
 export const Logo: React.FC<LogoProps> = ({ identity, variant = 'color', className = '', size = 'md' }) => {
   const isMono = variant === 'mono';
-  const customLogoUrl = isMono ? identity.logoMonoUrl : identity.logoColorUrl;
+  const customLogoUrl = isMono 
+    ? (identity.logoMonoUrl || identity.logoColorUrl) 
+    : (identity.logoColorUrl || identity.logoMonoUrl);
 
-  const sizeClasses = {
-    sm: 'h-8 text-lg',
-    md: 'h-10 text-2xl',
-    lg: 'h-14 text-3xl',
+  const displayMode: LogoDisplayMode = identity.logoDisplayMode || (customLogoUrl ? 'both' : 'both');
+  const siteName = (identity.siteName || 'PORTAL NOTÍCIAS').trim();
+  const tagline = (identity.tagline || '').trim();
+  const primaryColor = identity.colors?.primary || '#dc2626';
+
+  // Words breakdown for two-tone editorial styling
+  const words = siteName.split(/\s+/);
+  const firstWord = words[0] || 'PORTAL';
+  const remainingWords = words.slice(1).join(' ');
+
+  const initialLetter = siteName.charAt(0).toUpperCase() || 'P';
+
+  const imageSizeClasses = {
+    sm: 'h-8 max-h-8 w-auto max-w-[130px]',
+    md: 'h-10 max-h-10 w-auto max-w-[190px]',
+    lg: 'h-14 max-h-14 w-auto max-w-[260px]',
   }[size];
 
-  if (customLogoUrl) {
+  const textSizeClasses = {
+    sm: 'text-base sm:text-lg',
+    md: 'text-xl sm:text-2xl',
+    lg: 'text-2xl sm:text-3xl',
+  }[size];
+
+  const badgeSizeClasses = {
+    sm: 'w-7 h-7 text-xs',
+    md: 'w-9 h-9 text-base',
+    lg: 'w-12 h-12 text-xl',
+  }[size];
+
+  // Helper component to render site name text with editorial typography
+  const renderTextComponent = (showTagline = true) => (
+    <div 
+      className="flex flex-col leading-none"
+      style={{ fontFamily: 'var(--theme-font-heading, var(--theme-font-body, inherit))' }}
+    >
+      <div className="flex items-center gap-1.5 whitespace-nowrap">
+        <span 
+          className={`font-black tracking-tight ${
+            isMono ? 'text-white' : 'text-slate-900'
+          } ${textSizeClasses}`}
+        >
+          {firstWord}
+        </span>
+
+        {remainingWords && (
+          <span 
+            className={`font-semibold tracking-normal transition-colors ${
+              isMono ? 'text-slate-300' : ''
+            } ${textSizeClasses}`}
+            style={!isMono ? { color: primaryColor } : undefined}
+          >
+            {remainingWords}
+          </span>
+        )}
+
+        <span 
+          className="w-1.5 h-1.5 rounded-full shrink-0" 
+          style={{ backgroundColor: isMono ? '#ffffff' : primaryColor }} 
+        />
+      </div>
+
+      {showTagline && tagline && size !== 'sm' && (
+        <span 
+          className={`text-[10px] sm:text-[11px] tracking-wider uppercase font-semibold mt-1 line-clamp-1 ${
+            isMono ? 'text-slate-400' : 'text-slate-500'
+          }`}
+        >
+          {tagline}
+        </span>
+      )}
+    </div>
+  );
+
+  // 1. MODE: Apenas Logo PNG
+  if (displayMode === 'logo_only' && customLogoUrl) {
     return (
-      <div className={`flex items-center ${className}`}>
+      <div className={`flex items-center select-none ${className}`}>
         <img
           src={customLogoUrl}
-          alt={identity.siteName}
-          className={`${sizeClasses.split(' ')[0]} w-auto object-contain ${isMono ? 'brightness-0 invert opacity-90' : ''}`}
+          alt={siteName}
+          className={`${imageSizeClasses} object-contain transition-all ${
+            isMono && !identity.logoMonoUrl ? 'brightness-0 invert opacity-90' : ''
+          }`}
         />
       </div>
     );
   }
 
-  // Fallback designed SVG + typographic logo
+  // 2. MODE: Ambos juntos (Logo PNG + Texto do Nome na Frente/ao lado)
+  if (displayMode === 'both') {
+    return (
+      <div className={`flex items-center gap-2.5 sm:gap-3.5 select-none ${className}`}>
+        {/* PNG Logo or Designed Monogram if no PNG uploaded */}
+        {customLogoUrl ? (
+          <img
+            src={customLogoUrl}
+            alt={siteName}
+            className={`${imageSizeClasses} object-contain shrink-0 transition-all ${
+              isMono && !identity.logoMonoUrl ? 'brightness-0 invert opacity-90' : ''
+            }`}
+          />
+        ) : (
+          <div 
+            className={`flex items-center justify-center rounded-xl shadow-xs font-black shrink-0 transition-all ${badgeSizeClasses} ${
+              isMono 
+                ? 'bg-slate-700 text-white' 
+                : 'text-white'
+            }`}
+            style={!isMono ? { backgroundColor: primaryColor } : undefined}
+          >
+            <span>{initialLetter}</span>
+          </div>
+        )}
+
+        {/* Text in front of the PNG */}
+        {renderTextComponent(true)}
+      </div>
+    );
+  }
+
+  // 3. MODE: Apenas Texto
   return (
-    <div className={`flex items-center gap-2.5 font-bold tracking-tight select-none ${className}`}>
-      <div className={`flex items-center justify-center rounded-lg shadow-sm font-extrabold ${
-        size === 'sm' ? 'w-8 h-8 text-sm' : size === 'lg' ? 'w-12 h-12 text-2xl' : 'w-10 h-10 text-lg'
-      } ${
-        isMono 
-          ? 'bg-slate-200 text-slate-900' 
-          : 'bg-gradient-to-br from-red-600 to-rose-700 text-white shadow-red-500/20'
-      }`}>
-        <span>P</span>
+    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+      <div 
+        className={`flex items-center justify-center rounded-xl shadow-xs font-black shrink-0 transition-all ${badgeSizeClasses} ${
+          isMono 
+            ? 'bg-slate-700 text-white' 
+            : 'text-white'
+        }`}
+        style={!isMono ? { backgroundColor: primaryColor } : undefined}
+      >
+        <span>{initialLetter}</span>
       </div>
 
-      <div className="flex flex-col leading-none">
-        <div className="flex items-center gap-1.5">
-          <span className={`font-black tracking-tighter ${
-            isMono ? 'text-white' : 'text-slate-900'
-          } ${size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-2xl' : 'text-xl'}`}>
-            PORTAL
-          </span>
-          <span className={`font-light tracking-wide ${
-            isMono ? 'text-slate-300' : 'text-red-600'
-          } ${size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-2xl' : 'text-xl'}`}>
-            NOTÍCIAS
-          </span>
-          <span className={`w-1.5 h-1.5 rounded-full ${isMono ? 'bg-white' : 'bg-red-600'}`} />
-        </div>
-        {size !== 'sm' && (
-          <span className={`text-[10px] tracking-widest uppercase font-semibold mt-0.5 ${
-            isMono ? 'text-slate-400' : 'text-slate-500'
-          }`}>
-            Jornalismo em Tempo Real
-          </span>
-        )}
-      </div>
+      {renderTextComponent(true)}
     </div>
   );
 };
+

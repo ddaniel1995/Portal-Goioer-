@@ -83,10 +83,13 @@ export interface TypographyConfig {
   baseFontSize?: SiteBaseFontSize;
 }
 
+export type LogoDisplayMode = 'both' | 'logo_only' | 'text_only';
+
 export interface VisualIdentity {
   siteName: string;
   tagline: string;
   description: string;
+  logoDisplayMode?: LogoDisplayMode; // 'both' (logo PNG + text in front), 'logo_only' (PNG only), 'text_only' (text only)
   logoColorUrl: string;
   logoMonoUrl: string;
   contactEmail: string;
