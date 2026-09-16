@@ -4,23 +4,30 @@ import {
   Category, 
   Banner, 
   VisualIdentity, 
-  FacebookConfig 
+  FacebookConfig,
+  SitePopup,
+  BusinessGuideConfig,
+  BusinessStore,
+  BusinessProductService
 } from './types';
 import { storageService } from './services/storageService';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { BannerSlideshow } from './components/BannerSlideshow';
-import { SidebarBanners } from './components/SidebarBanners';
+import { SidebarBanners, SupporterBannerCard } from './components/SidebarBanners';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleView } from './components/ArticleView';
 import { SearchResults } from './components/SearchResults';
 import { RecentArticlesCarousel } from './components/RecentArticlesCarousel';
 import { PodcastGallery } from './components/PodcastGallery';
+import { SitePopupModal } from './components/SitePopupModal';
+import { BusinessDirectory } from './components/business/BusinessDirectory';
+import { BusinessMinisite } from './components/business/BusinessMinisite';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { AdminLogin } from './components/admin/AdminLogin';
-import { ArrowRight, Sparkles, TrendingUp, Newspaper, ChevronRight, Home as HomeIcon } from 'lucide-react';
+import { ArrowRight, Sparkles, TrendingUp, Newspaper, ChevronRight, Home as HomeIcon, Store } from 'lucide-react';
 
-type ViewMode = 'home' | 'article' | 'search' | 'category';
+type ViewMode = 'home' | 'article' | 'search' | 'category' | 'business_guide' | 'business_store';
 
 export default function App() {
   // Application Data States (synced with storageService)
@@ -29,10 +36,17 @@ export default function App() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [identity, setIdentity] = useState<VisualIdentity>(storageService.getVisualIdentity());
   const [facebookConfig, setFacebookConfig] = useState<FacebookConfig>(storageService.getFacebookConfig());
+  const [sitePopup, setSitePopup] = useState<SitePopup>(storageService.getSitePopup());
+
+  // Business Guide Data States
+  const [businessConfig, setBusinessConfig] = useState<BusinessGuideConfig>(storageService.getBusinessGuideConfig());
+  const [businessStores, setBusinessStores] = useState<BusinessStore[]>([]);
+  const [businessProducts, setBusinessProducts] = useState<BusinessProductService[]>([]);
 
   // Routing and Navigation States
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   const [selectedArticleSlug, setSelectedArticleSlug] = useState<string | null>(null);
+  const [selectedStoreSlug, setSelectedStoreSlug] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
@@ -48,6 +62,10 @@ export default function App() {
     setBanners(storageService.getBanners());
     setIdentity(storageService.getVisualIdentity());
     setFacebookConfig(storageService.getFacebookConfig());
+    setSitePopup(storageService.getSitePopup());
+    setBusinessConfig(storageService.getBusinessGuideConfig());
+    setBusinessStores(storageService.getBusinessStores());
+    setBusinessProducts(storageService.getBusinessProducts());
   };
 
   useEffect(() => {
@@ -119,8 +137,24 @@ export default function App() {
   const handleOpenHome = () => {
     setCurrentView('home');
     setSelectedArticleSlug(null);
+    setSelectedStoreSlug(null);
     setSearchQuery('');
     setSelectedCategoryFilter('all');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenBusinessGuide = () => {
+    setCurrentView('business_guide');
+    setSelectedArticleSlug(null);
+    setSelectedStoreSlug(null);
+    setSearchQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectStore = (storeSlug: string) => {
+    setSelectedStoreSlug(storeSlug);
+    setSelectedArticleSlug(null);
+    setCurrentView('business_store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -161,6 +195,11 @@ export default function App() {
   // Selected article for ArticleView
   const currentArticle = selectedArticleSlug
     ? articles.find(a => a.slug === selectedArticleSlug || a.id === selectedArticleSlug) || null
+    : null;
+
+  // Selected store for Business Minisite
+  const currentStore = selectedStoreSlug
+    ? businessStores.find(s => s.slug === selectedStoreSlug || s.id === selectedStoreSlug) || null
     : null;
 
   // Filtered articles for Category View
@@ -208,6 +247,10 @@ export default function App() {
         onRefreshData={loadPortalData}
         onCloseAdmin={() => setIsAdminOpen(false)}
         onLogout={handleLogout}
+        onOpenStorePreview={(slug) => {
+          setIsAdminOpen(false);
+          handleSelectStore(slug);
+        }}
       />
     );
   }
@@ -226,6 +269,9 @@ export default function App() {
             ? (categoryActive?.id || selectedCategoryFilter)
             : (currentView === 'home' ? '' : undefined)
         }
+        businessGuideConfig={businessConfig}
+        isBusinessGuideActive={currentView === 'business_guide' || currentView === 'business_store'}
+        onOpenBusinessGuide={handleOpenBusinessGuide}
         onSelectCategory={handleSelectCategory}
         onSearch={handleSearch}
         onGoHome={handleOpenHome}
@@ -322,12 +368,23 @@ export default function App() {
                 <div className="lg:col-span-8">
                   {categoryArticles.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {categoryArticles.map((article) => (
-                        <ArticleCard
-                          key={article.id}
-                          article={article}
-                          onSelect={handleOpenArticle}
-                        />
+                      {categoryArticles.map((article, idx) => (
+                        <React.Fragment key={article.id}>
+                          <ArticleCard
+                            article={article}
+                            onSelect={handleOpenArticle}
+                          />
+
+                          {/* On reduced screen: place supporter banner separately between articles */}
+                          {(idx + 1) % 3 === 0 && sidebarBanners.length > 0 && (
+                            <div className="lg:hidden col-span-full my-3">
+                              <SupporterBannerCard
+                                banner={sidebarBanners[Math.floor(idx / 3) % sidebarBanners.length]}
+                                onBannerClick={handleBannerClick}
+                              />
+                            </div>
+                          )}
+                        </React.Fragment>
                       ))}
                     </div>
                   ) : (
@@ -346,8 +403,8 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Sidebar */}
-                <div className="lg:col-span-4">
+                {/* Sidebar - on desktop appears here; on reduced screens banners are placed separately between articles */}
+                <div className="hidden lg:block lg:col-span-4">
                   <SidebarBanners
                     banners={sidebarBanners}
                     onBannerClick={handleBannerClick}
@@ -414,7 +471,7 @@ export default function App() {
                 {/* Independent Sections per Category */}
                 {categories
                   .filter((category) => category.showOnHome !== false)
-                  .map((category) => {
+                  .map((category, catIndex) => {
                   const catArticles = publishedArticles.filter(
                     (a) => a.categoryId === category.id
                   );
@@ -423,53 +480,68 @@ export default function App() {
                   if (catArticles.length === 0) return null;
 
                   const [leadArticle, ...restArticles] = catArticles;
+                  const supporterBannerForThisSection = sidebarBanners.length > 0 
+                    ? sidebarBanners[catIndex % sidebarBanners.length] 
+                    : null;
 
                   return (
-                    <section key={category.id} className="space-y-3.5">
-                      {/* Section Header with Category Color Accent */}
-                      <div className="flex items-center justify-between border-b-2 border-slate-200 pb-2">
-                        <div className="flex items-center gap-2.5">
-                          <span 
-                            className="w-3.5 h-3.5 rounded-xs shrink-0" 
-                            style={{ backgroundColor: category.color || '#dc2626' }}
-                          />
-                          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                            {category.name}
-                          </h2>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSelectCategory(category.id)}
-                          className="text-xs font-bold text-slate-600 hover:text-red-600 flex items-center gap-1 transition-colors group cursor-pointer"
-                        >
-                          <span>Ver todas</span>
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
-                      </div>
-
-                      {/* Lead Article if available (Modern compact split card) */}
-                      {leadArticle && (
-                        <ArticleCard
-                          article={leadArticle}
-                          featured={true}
-                          onSelect={handleOpenArticle}
-                        />
-                      )}
-
-                      {/* Secondary Cards in this category (Compact grid) */}
-                      {restArticles.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 pt-1">
-                          {restArticles.slice(0, 6).map((article) => (
-                            <ArticleCard
-                              key={article.id}
-                              article={article}
-                              onSelect={handleOpenArticle}
+                    <React.Fragment key={category.id}>
+                      <section className="space-y-3.5">
+                        {/* Section Header with Category Color Accent */}
+                        <div className="flex items-center justify-between border-b-2 border-slate-200 pb-2">
+                          <div className="flex items-center gap-2.5">
+                            <span 
+                              className="w-3.5 h-3.5 rounded-xs shrink-0" 
+                              style={{ backgroundColor: category.color || '#dc2626' }}
                             />
-                          ))}
+                            <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                              {category.name}
+                            </h2>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectCategory(category.id)}
+                            className="text-xs font-bold text-slate-600 hover:text-red-600 flex items-center gap-1 transition-colors group cursor-pointer"
+                          >
+                            <span>Ver todas</span>
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+
+                        {/* Lead Article if available (Modern compact split card) */}
+                        {leadArticle && (
+                          <ArticleCard
+                            article={leadArticle}
+                            featured={true}
+                            onSelect={handleOpenArticle}
+                          />
+                        )}
+
+                        {/* Secondary Cards in this category (Compact grid) */}
+                        {restArticles.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 pt-1">
+                            {restArticles.slice(0, 6).map((article) => (
+                              <ArticleCard
+                                key={article.id}
+                                article={article}
+                                onSelect={handleOpenArticle}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </section>
+
+                      {/* On reduced screen: place supporter banners separately between the category sections */}
+                      {supporterBannerForThisSection && (
+                        <div className="lg:hidden my-6">
+                          <SupporterBannerCard
+                            banner={supporterBannerForThisSection}
+                            onBannerClick={handleBannerClick}
+                          />
                         </div>
                       )}
-                    </section>
+                    </React.Fragment>
                   );
                 })}
 
@@ -519,14 +591,85 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Sidebar Advertising Banners */}
-                <SidebarBanners
-                  banners={sidebarBanners}
-                  onBannerClick={handleBannerClick}
-                />
+                {/* Guia Empresarial Quick Spotlight Widget in Sidebar */}
+                {businessConfig.enabled !== false && businessStores.length > 0 && (
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-xs">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-700/60">
+                      <div className="flex items-center gap-2">
+                        <Store className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-bold tracking-tight">
+                          {businessConfig.tabName || 'Guia Empresarial'}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenBusinessGuide}
+                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                      >
+                        Ver Guia →
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-300 mb-3.5 leading-relaxed">
+                      Conheça os melhores comércios e serviços da cidade com atendimento direto no WhatsApp.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {businessStores.slice(0, 3).map((store) => (
+                        <div
+                          key={store.id}
+                          onClick={() => handleSelectStore(store.slug)}
+                          className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 transition-colors cursor-pointer group border border-slate-700/40"
+                        >
+                          <img
+                            src={store.logoUrl}
+                            alt={store.name}
+                            className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-600"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors truncate">
+                              {store.name}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {store.segment || store.category}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sidebar Advertising Banners - on desktop appears here; on reduced screens banners are placed separately between sections */}
+                <div className="hidden lg:block">
+                  <SidebarBanners
+                    banners={sidebarBanners}
+                    onBannerClick={handleBannerClick}
+                  />
+                </div>
               </div>
             </div>
           </div>
+        )}
+        {/* VIEW 4: GUIA EMPRESARIAL (DIRETÓRIO DE LOJAS) */}
+        {currentView === 'business_guide' && (
+          <BusinessDirectory
+            config={businessConfig}
+            stores={businessStores}
+            onSelectStore={handleSelectStore}
+            onGoHome={handleOpenHome}
+          />
+        )}
+
+        {/* VIEW 5: MINISITE DA LOJA / PRODUTOS / SERVIÇOS */}
+        {currentView === 'business_store' && currentStore && (
+          <BusinessMinisite
+            store={currentStore}
+            products={businessProducts.filter(p => p.businessId === currentStore.id)}
+            onBackToGuide={handleOpenBusinessGuide}
+            onGoHome={handleOpenHome}
+          />
         )}
       </main>
 
@@ -534,9 +677,17 @@ export default function App() {
       <Footer
         identity={identity}
         categories={categories}
+        businessGuideConfig={businessConfig}
+        onOpenBusinessGuide={handleOpenBusinessGuide}
         onSelectCategory={handleSelectCategory}
         onGoHome={handleOpenHome}
         onOpenAdmin={handleOpenAdminFromFooter}
+      />
+
+      {/* Global Site PopUp with Attached Image */}
+      <SitePopupModal
+        popup={sitePopup}
+        isHomePage={currentView === 'home'}
       />
 
       {/* Admin Login Modal (When not authenticated) */}

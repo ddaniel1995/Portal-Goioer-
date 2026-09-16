@@ -17,7 +17,8 @@ import {
   Heart,
   Palette,
   Handshake,
-  Sparkles
+  Sparkles,
+  Type
 } from 'lucide-react';
 import { Banner, BannerPosition, BannerType } from '../../types';
 import { storageService } from '../../services/storageService';
@@ -46,6 +47,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
   const [type, setType] = useState<BannerType>('commercial');
   const [badgeText, setBadgeText] = useState('');
   const [active, setActive] = useState(true);
+  const [showText, setShowText] = useState(true);
   const [width, setWidth] = useState<number | undefined>(undefined);
   const [height, setHeight] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -98,6 +100,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
     setType('commercial');
     setBadgeText('');
     setActive(true);
+    setShowText(true);
     setWidth(undefined);
     setHeight(undefined);
     setIsFormOpen(false);
@@ -132,12 +135,28 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
     setType(banner.type || 'commercial');
     setBadgeText(banner.badgeText || '');
     setActive(banner.active);
+    setShowText(banner.showText !== false);
     setWidth(banner.width);
     setHeight(banner.height);
     setIsFormOpen(true);
     setTimeout(() => {
       document.getElementById('banner-form-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
+  };
+
+  const handleToggleShowText = (banner: Banner) => {
+    storageService.saveBanner({
+      ...banner,
+      showText: !(banner.showText !== false)
+    });
+    onRefresh();
+    setMessage({
+      type: 'success',
+      text: banner.showText !== false
+        ? `Texto desativado no banner "${banner.title}". Agora exibirá apenas a imagem pura.`
+        : `Texto ativado no banner "${banner.title}".`
+    });
+    setTimeout(() => setMessage(null), 3000);
   };
 
   // Open form immediately if requested from dashboard or other tab
@@ -171,6 +190,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
       type: position === 'sidebar' ? type : undefined,
       badgeText: position === 'sidebar' && badgeText.trim() ? badgeText.trim() : undefined,
       active,
+      showText,
       width,
       height,
       aspectRatio: width && height ? `${width}/${height}` : undefined,
@@ -474,7 +494,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.png,.jpg,.jpeg,.webp"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -488,7 +508,12 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                   )}
 
                   <p className="text-[11px] text-slate-500 mt-2">
-                    O sistema adapta a imagem ao espaço disponível preservando a proporção natural sem distorções.
+                    Formatos aceitos: <strong>PNG</strong> (com ou sem transparência), JPG, WEBP.
+                    {position === 'slideshow' && (
+                      <span className="block mt-1 text-blue-700 font-semibold bg-blue-50 p-2 rounded-lg border border-blue-200">
+                        Dimensão exata padrão do Slideshow: <strong>1350 x 250 px</strong> (mantém proporção sem distorção).
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -527,7 +552,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                   <button
                     type="button"
                     onClick={() => setActive(true)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                       active
                         ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-300'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -540,7 +565,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                   <button
                     type="button"
                     onClick={() => setActive(false)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                       !active
                         ? 'bg-rose-500 text-white border-rose-600 shadow-sm ring-2 ring-rose-300'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -554,6 +579,45 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                   {active ? 'Este banner será exibido aos visitantes do portal.' : 'Banner salvo, mas oculto no site até ser reativado.'}
                 </p>
               </div>
+            </div>
+
+            {/* Toggle Show / Hide Text on Banner */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Exibição de Texto no Banner
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowText(true)}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                    showText
+                      ? 'bg-red-600 text-white border-red-700 shadow-xs ring-2 ring-red-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <Type className="w-4 h-4" />
+                  <span>Com Texto (Título & Descrição)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowText(false)}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                    !showText
+                      ? 'bg-slate-900 text-white border-slate-950 shadow-xs ring-2 ring-slate-400'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Sem Texto (Apenas Arte / Imagem Limpa)</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                {showText 
+                  ? 'O título e texto serão exibidos sobre o banner (ou na caixa informativa nos banners laterais).' 
+                  : 'Nenhum texto será sobreposto na imagem (ideal para artes prontas de 1350x250px ou PNGs de logomarcas que já possuem texto na própria arte).'}
+              </p>
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
@@ -613,8 +677,8 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                 </div>
 
                 <div className="p-3.5">
-                  {/* Dedicated Prominent Active/Inactive Button */}
-                  <div className="mb-2">
+                  {/* Dedicated Prominent Active/Inactive Button and Text Toggle */}
+                  <div className="flex flex-col gap-1.5 mb-2">
                     <button
                       type="button"
                       onClick={() => handleToggleActive(banner)}
@@ -636,6 +700,20 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                           <span>Desativado (Clique p/ ativar)</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleShowText(banner)}
+                      className={`w-full py-1 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                        banner.showText !== false
+                          ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                      }`}
+                      title="Alternar exibição de texto ou apenas imagem limpa"
+                    >
+                      <Type className="w-3 h-3" />
+                      <span>{banner.showText !== false ? 'Texto Ativado no Banner' : 'Sem Texto (Arte Pura)'}</span>
                     </button>
                   </div>
 
@@ -710,8 +788,8 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                   </div>
 
                   <div className="p-3.5">
-                    {/* Dedicated Prominent Active/Inactive Button */}
-                    <div className="mb-2">
+                    {/* Dedicated Prominent Active/Inactive Button and Text Toggle */}
+                    <div className="flex flex-col gap-1.5 mb-2">
                       <button
                         type="button"
                         onClick={() => handleToggleActive(banner)}
@@ -733,6 +811,20 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                             <span>Desativado (Clique p/ ativar)</span>
                           </>
                         )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleShowText(banner)}
+                        className={`w-full py-1 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                          banner.showText !== false
+                            ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                        }`}
+                        title="Alternar exibição de texto ou apenas imagem limpa"
+                      >
+                        <Type className="w-3 h-3" />
+                        <span>{banner.showText !== false ? 'Texto Ativado no Banner' : 'Sem Texto (Arte Pura)'}</span>
                       </button>
                     </div>
 
@@ -824,8 +916,8 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                 </div>
 
                 <div className="p-3.5">
-                  {/* Dedicated Prominent Active/Inactive Button */}
-                  <div className="mb-2">
+                  {/* Dedicated Prominent Active/Inactive Button and Text Toggle */}
+                  <div className="flex flex-col gap-1.5 mb-2">
                     <button
                       type="button"
                       onClick={() => handleToggleActive(banner)}
@@ -847,6 +939,20 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                           <span>Desativado (Clique p/ ativar)</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleShowText(banner)}
+                      className={`w-full py-1 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                        banner.showText !== false
+                          ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                      }`}
+                      title="Alternar se o texto e badge são exibidos junto ao banner"
+                    >
+                      <Type className="w-3 h-3" />
+                      <span>{banner.showText !== false ? 'Texto e Badge Ativos' : 'Sem Texto (Arte Pura)'}</span>
                     </button>
                   </div>
 

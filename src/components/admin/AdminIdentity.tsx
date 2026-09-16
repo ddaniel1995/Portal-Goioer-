@@ -23,6 +23,9 @@ const COLOR_PRESETS = [
 export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefresh }) => {
   const [siteName, setSiteName] = useState(identity.siteName);
   const [tagline, setTagline] = useState(identity.tagline);
+  const [showSiteName, setShowSiteName] = useState<boolean>(identity.showSiteName !== false);
+  const [logoSize, setLogoSize] = useState<'sm' | 'md' | 'lg' | 'xl' | '2xl'>(identity.logoSize || 'md');
+  const [logoHeight, setLogoHeight] = useState<number>(identity.logoHeight || 48);
   const [description, setDescription] = useState(identity.description);
   const [logoColorUrl, setLogoColorUrl] = useState(identity.logoColorUrl);
   const [logoMonoUrl, setLogoMonoUrl] = useState(identity.logoMonoUrl);
@@ -132,6 +135,9 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
       siteName: siteName.trim() || 'PORTAL NOTÍCIAS',
       tagline: tagline.trim(),
       description: description.trim(),
+      showSiteName,
+      logoSize,
+      logoHeight,
       logoColorUrl: logoColorUrl.trim(),
       logoMonoUrl: logoMonoUrl.trim(),
       contactEmail: contactEmail.trim(),
@@ -167,6 +173,9 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
     ...identity,
     siteName,
     tagline,
+    showSiteName,
+    logoSize,
+    logoHeight,
     logoColorUrl,
     logoMonoUrl,
     colors: {
@@ -255,8 +264,8 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
               {/* Preview of Header Logo */}
               <div className="pt-2">
                 <span className="text-[11px] font-bold text-slate-500 mb-2 block">Prévia no Cabeçalho (Fundo Branco):</span>
-                <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-center min-h-[70px]">
-                  <Logo identity={previewIdentity} variant="color" size="md" />
+                <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-center min-h-[90px] overflow-hidden">
+                  <Logo identity={previewIdentity} variant="color" />
                 </div>
               </div>
             </div>
@@ -300,9 +309,126 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
               {/* Preview of Footer Logo */}
               <div className="pt-2">
                 <span className="text-[11px] font-bold text-slate-400 mb-2 block">Prévia no Rodapé (Fundo Escuro):</span>
-                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center min-h-[70px]">
-                  <Logo identity={previewIdentity} variant="mono" size="md" />
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center min-h-[90px] overflow-hidden">
+                  <Logo identity={previewIdentity} variant="mono" />
                 </div>
+              </div>
+            </div>
+
+            {/* Control to Increase and Adjust Logo Size */}
+            <div className="md:col-span-2 p-5 rounded-xl bg-gradient-to-r from-red-50/60 via-slate-50 to-slate-50 border border-slate-200/90 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-red-600" />
+                    <span>Aumentar / Ajustar Tamanho da Logo (Home e Cabeçalho)</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Defina a altura exata da logo do site. A logo aumentará proporcionalmente na página inicial e no cabeçalho.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-red-600 text-white shadow-xs">
+                    {logoHeight} px
+                  </span>
+                </div>
+              </div>
+
+              {/* Presets Rápidos */}
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                  Tamanhos Pré-definidos:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'Pequeno (36px)', h: 36, size: 'sm' as const },
+                    { label: 'Padrão (48px)', h: 48, size: 'md' as const },
+                    { label: 'Médio / Grande (64px)', h: 64, size: 'lg' as const },
+                    { label: 'Grande (80px)', h: 80, size: 'xl' as const },
+                    { label: 'Extra Grande (96px)', h: 96, size: '2xl' as const },
+                    { label: 'Super Destaque (116px)', h: 116, size: '2xl' as const },
+                  ].map((p) => {
+                    const isSelected = logoHeight === p.h;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          setLogoHeight(p.h);
+                          setLogoSize(p.size);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-red-600 text-white shadow-xs scale-102'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Slider de Precisão */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-slate-600 font-medium mb-1">
+                  <span>32px (Compacto)</span>
+                  <span className="font-bold text-slate-900">Ajuste Fino: {logoHeight}px</span>
+                  <span>140px (Máximo)</span>
+                </div>
+                <input
+                  type="range"
+                  min="32"
+                  max="140"
+                  step="2"
+                  value={logoHeight}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setLogoHeight(val);
+                    if (val < 40) setLogoSize('sm');
+                    else if (val < 54) setLogoSize('md');
+                    else if (val < 72) setLogoSize('lg');
+                    else if (val < 90) setLogoSize('xl');
+                    else setLogoSize('2xl');
+                  }}
+                  className="w-full accent-red-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Quick Toggle for Site Name */}
+            <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div>
+                <span className="text-xs font-bold text-slate-900 block">
+                  Exibição do Nome do Portal no Cabeçalho e Logos
+                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {showSiteName 
+                    ? 'O nome textual do portal está ativo e visível junto à logo.' 
+                    : 'O nome textual está desabilitado, exibindo apenas a imagem ou emblema da logo.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowSiteName(!showSiteName)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    showSiteName ? 'bg-red-600' : 'bg-slate-300'
+                  }`}
+                  role="switch"
+                  aria-checked={showSiteName}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      showSiteName ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className={`text-xs font-bold ${showSiteName ? 'text-red-600' : 'text-slate-400'}`}>
+                  {showSiteName ? 'Nome Habilitado' : 'Nome Desabilitado'}
+                </span>
               </div>
             </div>
           </div>
@@ -776,19 +902,78 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
         </div>
 
         {/* Section 4: Nome do Portal & Textos */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-red-600" />
-              <span>Dados Gerais do Portal</span>
-            </h3>
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+          <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-red-600" />
+                <span>Nome do Portal & Dados Gerais</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Defina o nome principal do portal e escolha se ele deve ser exibido publicamente junto ao logotipo.
+              </p>
+            </div>
+
+            {/* Toggle Habilitar / Desabilitar Nome do Portal */}
+            <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl self-start sm:self-center">
+              <span className="text-xs font-bold text-slate-700">Exibir Nome:</span>
+              <button
+                type="button"
+                onClick={() => setShowSiteName(!showSiteName)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                  showSiteName ? 'bg-red-600' : 'bg-slate-300'
+                }`}
+                role="switch"
+                aria-checked={showSiteName}
+                title={showSiteName ? 'Clique para desabilitar o nome do portal' : 'Clique para habilitar o nome do portal'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    showSiteName ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+              <span className={`text-xs font-black ${showSiteName ? 'text-red-600' : 'text-slate-400'}`}>
+                {showSiteName ? 'Habilitado' : 'Desabilitado'}
+              </span>
+            </div>
+          </div>
+
+          {/* Feedback Box explaining status */}
+          <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+            showSiteName
+              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+              : 'bg-amber-50/70 border-amber-200 text-amber-900'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${showSiteName ? 'bg-emerald-600' : 'bg-amber-600'}`} />
+              <span className="font-semibold">
+                {showSiteName
+                  ? 'O Nome do Portal está habilitado: o texto é exibido no topo do site e no cabeçalho.'
+                  : 'O Nome do Portal está desabilitado: apenas o logotipo (imagem ou emblema) é exibido, sem texto.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSiteName(!showSiteName)}
+              className="text-xs font-bold underline cursor-pointer shrink-0"
+            >
+              {showSiteName ? 'Desativar Nome' : 'Ativar Nome'}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Nome do Portal *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Nome do Portal *
+                </label>
+                {!showSiteName && (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    Oculto no cabeçalho
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 required

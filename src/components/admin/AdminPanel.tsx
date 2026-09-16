@@ -10,7 +10,9 @@ import {
   LogOut, 
   Globe,
   CheckCircle,
-  Plus
+  Plus,
+  Sparkles,
+  Store
 } from 'lucide-react';
 import { Article, Category, Banner, VisualIdentity, FacebookConfig, BannerPosition } from '../../types';
 import { AdminDashboard } from './AdminDashboard';
@@ -19,8 +21,10 @@ import { AdminCategories } from './AdminCategories';
 import { AdminBanners } from './AdminBanners';
 import { AdminIdentity } from './AdminIdentity';
 import { AdminFacebook } from './AdminFacebook';
+import { AdminPopup } from './AdminPopup';
+import { AdminBusinesses } from './AdminBusinesses';
 
-type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'facebook';
+type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'popup' | 'businesses' | 'facebook';
 
 interface AdminPanelProps {
   articles: Article[];
@@ -31,6 +35,7 @@ interface AdminPanelProps {
   onRefreshData: () => void;
   onCloseAdmin: () => void;
   onLogout: () => void;
+  onOpenStorePreview?: (slug: string) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -42,6 +47,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onRefreshData,
   onCloseAdmin,
   onLogout,
+  onOpenStorePreview,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
@@ -176,6 +182,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('popup')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                activeTab === 'popup'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>PopUp com Imagem</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('businesses')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                activeTab === 'businesses'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Guia Empresarial</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('facebook')}
               className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === 'facebook'
@@ -244,6 +274,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <AdminIdentity
             identity={identity}
             onRefresh={onRefreshData}
+          />
+        )}
+
+        {activeTab === 'popup' && (
+          <AdminPopup
+            onRefresh={onRefreshData}
+          />
+        )}
+
+        {activeTab === 'businesses' && (
+          <AdminBusinesses
+            onRefresh={onRefreshData}
+            onPreviewStore={onOpenStorePreview}
           />
         )}
 

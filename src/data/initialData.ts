@@ -1,4 +1,4 @@
-import { Article, Category, Banner, VisualIdentity, FacebookConfig } from '../types';
+import { Article, Category, Banner, VisualIdentity, FacebookConfig, SitePopup } from '../types';
 
 export const initialCategories: Category[] = [
   { id: 'cat-politica', name: 'Política', slug: 'politica', order: 1, color: '#2563eb', description: 'Notícias do cenário político nacional e internacional', showOnHome: true },
@@ -427,6 +427,9 @@ export const initialBanners: Banner[] = [
 export const initialVisualIdentity: VisualIdentity = {
   siteName: 'PORTAL NOTÍCIAS',
   tagline: 'Jornalismo independente, ágil e com credibilidade',
+  showSiteName: true,
+  logoSize: 'md',
+  logoHeight: 44,
   description: 'O seu portal diário de informações com cobertura abrangente de política, economia, educação, saúde, esportes e cultura com compromisso ético e verdade.',
   logoDisplayMode: 'both',
   logoColorUrl: '', // Uses dynamic modern SVG logo if empty, or uploaded data/image URL
@@ -471,4 +474,16 @@ Leia a matéria completa no Portal:
   lastCheckMessage: 'Conexão ativa e validada com a Página do Facebook.',
   lastPublishStatus: 'success',
   lastPublishDate: '2026-09-11T09:32:00Z'
+};
+
+export const initialSitePopup: SitePopup = {
+  id: 'popup-principal',
+  title: 'Destaque do Portal Notícias',
+  subtitle: 'Fique por dentro dos principais acontecimentos com a melhor cobertura jornalística.',
+  imageUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=1200&auto=format&fit=crop',
+  targetUrl: '',
+  active: false, // Inativo por padrão até o usuário ativar ou anexar sua imagem
+  showOnHomeOnly: true,
+  frequency: 'once_per_session',
+  buttonText: 'Acessar Agora',
 };

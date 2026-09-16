@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Clock, 
   Calendar, 
@@ -12,7 +12,9 @@ import {
   ArrowLeft,
   Eye,
   Type,
-  Maximize2
+  Maximize2,
+  Heart,
+  ExternalLink
 } from 'lucide-react';
 import { Article, Category, Banner } from '../types';
 import { extractYoutubeId, storageService } from '../services/storageService';
@@ -87,6 +89,27 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
     .filter(a => a.id !== article.id && (a.categoryId === article.categoryId || a.status === 'published'))
     .slice(0, 3);
 
+  // Select one random supporter banner to display inside the article content
+  const randomSupporterBanner = useMemo(() => {
+    const activeSupporters = (banners || []).filter(b => b.active);
+    if (activeSupporters.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * activeSupporters.length);
+    return activeSupporters[randomIndex];
+  }, [article.id, banners]);
+
+  // Split content cleanly to position the supporter banner midway inside the article
+  const contentParts = useMemo(() => {
+    if (!article.content) return { before: '', after: '' };
+    const pMatches = article.content.split(/<\/p>/i);
+    if (pMatches.length >= 3) {
+      const midPoint = Math.ceil(pMatches.length / 2);
+      const before = pMatches.slice(0, midPoint).join('</p>') + '</p>';
+      const after = pMatches.slice(midPoint).join('</p>');
+      return { before, after };
+    }
+    return { before: article.content, after: '' };
+  }, [article.content]);
+
   const fontClasses = {
     normal: 'text-base md:text-lg leading-relaxed',
     large: 'text-lg md:text-xl leading-relaxed',
@@ -148,16 +171,9 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
 
             {/* Author & Publication Time Meta */}
             <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <img
-                  src={article.authorAvatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop'}
-                  alt={article.author}
-                  className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-xs"
-                />
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 leading-snug">{article.author}</h4>
-                  <p className="text-xs text-slate-500">{article.authorRole || 'Redação'}</p>
-                </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 leading-snug">Por {article.author}</h4>
+                <p className="text-xs text-slate-500">{article.authorRole || 'Redação'}</p>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -283,11 +299,127 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
               </div>
             )}
 
-            {/* Full Article Content */}
-            <div 
-              className={`mt-8 text-slate-800 article-content ${fontClasses} space-y-4`}
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
+            {/* Full Article Content with Injected Supporter Banner */}
+            {contentParts.after ? (
+              <>
+                <div 
+                  className={`mt-8 text-slate-800 article-content ${fontClasses} space-y-4`}
+                  dangerouslySetInnerHTML={{ __html: contentParts.before }}
+                />
+
+                {/* Random In-Article Supporter Banner */}
+                {randomSupporterBanner && (
+                  <div className="my-8 p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-200/70">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-600">
+                        <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                        <span>{randomSupporterBanner.badgeText || (randomSupporterBanner.type === 'art' ? 'Arte & Cultura' : 'Apoiador Oficial')}</span>
+                      </span>
+                      {randomSupporterBanner.targetUrl && (
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Publicidade & Apoio</span>
+                      )}
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        storageService.recordBannerClick(randomSupporterBanner.id);
+                        if (randomSupporterBanner.targetUrl) {
+                          window.open(randomSupporterBanner.targetUrl, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className={`group block overflow-hidden rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all ${
+                        randomSupporterBanner.targetUrl ? 'cursor-pointer hover:shadow-md' : ''
+                      }`}
+                    >
+                      <div className="w-full bg-slate-50 flex items-center justify-center p-2">
+                        <img
+                          src={randomSupporterBanner.imageUrl}
+                          alt={randomSupporterBanner.title}
+                          className="w-full h-auto max-h-[260px] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+                          loading="lazy"
+                        />
+                      </div>
+                      {randomSupporterBanner.showText !== false && (randomSupporterBanner.title || randomSupporterBanner.description) && (
+                        <div className="p-3.5 bg-white border-t border-slate-100">
+                          {randomSupporterBanner.title && (
+                            <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                              {randomSupporterBanner.title}
+                            </h4>
+                          )}
+                          {randomSupporterBanner.description && (
+                            <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {randomSupporterBanner.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div 
+                  className={`mt-4 text-slate-800 article-content ${fontClasses} space-y-4`}
+                  dangerouslySetInnerHTML={{ __html: contentParts.after }}
+                />
+              </>
+            ) : (
+              <>
+                <div 
+                  className={`mt-8 text-slate-800 article-content ${fontClasses} space-y-4`}
+                  dangerouslySetInnerHTML={{ __html: article.content }}
+                />
+
+                {/* Random In-Article Supporter Banner */}
+                {randomSupporterBanner && (
+                  <div className="my-8 p-3.5 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-200/70">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-600">
+                        <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                        <span>{randomSupporterBanner.badgeText || (randomSupporterBanner.type === 'art' ? 'Arte & Cultura' : 'Apoiador Oficial')}</span>
+                      </span>
+                      {randomSupporterBanner.targetUrl && (
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Publicidade & Apoio</span>
+                      )}
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        storageService.recordBannerClick(randomSupporterBanner.id);
+                        if (randomSupporterBanner.targetUrl) {
+                          window.open(randomSupporterBanner.targetUrl, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className={`group block overflow-hidden rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all ${
+                        randomSupporterBanner.targetUrl ? 'cursor-pointer hover:shadow-md' : ''
+                      }`}
+                    >
+                      <div className="w-full bg-slate-50 flex items-center justify-center p-2">
+                        <img
+                          src={randomSupporterBanner.imageUrl}
+                          alt={randomSupporterBanner.title}
+                          className="w-full h-auto max-h-[260px] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+                          loading="lazy"
+                        />
+                      </div>
+                      {randomSupporterBanner.showText !== false && (randomSupporterBanner.title || randomSupporterBanner.description) && (
+                        <div className="p-3.5 bg-white border-t border-slate-100">
+                          {randomSupporterBanner.title && (
+                            <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                              {randomSupporterBanner.title}
+                            </h4>
+                          )}
+                          {randomSupporterBanner.description && (
+                            <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {randomSupporterBanner.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Additional Images Gallery */}
             {article.additionalImages && article.additionalImages.length > 0 && (

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Search, Menu, X, Clock, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
-import { Category, VisualIdentity } from '../types';
+import { Search, Menu, X, Clock, TrendingUp, Calendar, ArrowRight, Store } from 'lucide-react';
+import { Category, VisualIdentity, BusinessGuideConfig } from '../types';
 import { Logo } from './Logo';
 
 interface HeaderProps {
   identity: VisualIdentity;
   categories: Category[];
   activeCategoryId?: string;
+  businessGuideConfig?: BusinessGuideConfig;
+  isBusinessGuideActive?: boolean;
+  onOpenBusinessGuide?: () => void;
   onSelectCategory: (categoryId: string) => void;
   onGoHome: () => void;
   onSearch: (query: string) => void;
@@ -16,6 +19,9 @@ export const Header: React.FC<HeaderProps> = ({
   identity,
   categories,
   activeCategoryId,
+  businessGuideConfig,
+  isBusinessGuideActive,
+  onOpenBusinessGuide,
   onSelectCategory,
   onGoHome,
   onSearch,
@@ -23,6 +29,9 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+
+  // Filter out categories marked to be hidden in the menu
+  const menuCategories = categories.filter((c) => !c.hideInMenu);
 
   // Formatted date in Portuguese
   const todayFormatted = new Intl.DateTimeFormat('pt-BR', {
@@ -91,8 +100,8 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Logo */}
-        <div onClick={onGoHome} className="cursor-pointer">
-          <Logo identity={identity} variant="color" size="md" />
+        <div onClick={onGoHome} className="cursor-pointer shrink-0 py-1 transition-all">
+          <Logo identity={identity} variant="color" />
         </div>
 
         {/* Desktop Search Bar */}
@@ -195,7 +204,23 @@ export const Header: React.FC<HeaderProps> = ({
                 Últimas Notícias
               </button>
             </li>
-            {categories.map((cat) => {
+            {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenBusinessGuide}
+                  className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    isBusinessGuideActive
+                      ? 'text-red-600 font-bold border-b-2 border-red-600'
+                      : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Store className="w-4 h-4 text-emerald-600" />
+                  <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
+                </button>
+              </li>
+            )}
+            {menuCategories.map((cat) => {
               const isActive = activeCategoryId === cat.id || activeCategoryId === cat.slug;
               return (
                 <li key={cat.id}>
@@ -268,7 +293,27 @@ export const Header: React.FC<HeaderProps> = ({
                     <ArrowRight className="w-4 h-4 opacity-50" />
                   </button>
                 </li>
-                {categories.map((cat) => {
+                {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenBusinessGuide();
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-semibold flex items-center justify-between cursor-pointer ${
+                        isBusinessGuideActive ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Store className="w-4 h-4 text-emerald-600" />
+                        <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
+                      </span>
+                      <ArrowRight className="w-4 h-4 opacity-50" />
+                    </button>
+                  </li>
+                )}
+                {menuCategories.map((cat) => {
                   const isActive = activeCategoryId === cat.id || activeCategoryId === cat.slug;
                   return (
                     <li key={cat.id}>
@@ -291,10 +336,12 @@ export const Header: React.FC<HeaderProps> = ({
               </ul>
             </div>
 
-            <div className="pt-6 mt-6 border-t border-slate-100 text-xs text-slate-500">
-              <p className="font-medium text-slate-700">{identity.siteName}</p>
-              <p className="mt-1">{identity.tagline}</p>
-            </div>
+            {identity.showSiteName !== false && (
+              <div className="pt-6 mt-6 border-t border-slate-100 text-xs text-slate-500">
+                <p className="font-medium text-slate-700">{identity.siteName}</p>
+                {identity.tagline && <p className="mt-1">{identity.tagline}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}

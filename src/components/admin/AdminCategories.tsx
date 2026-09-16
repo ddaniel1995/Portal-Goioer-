@@ -20,6 +20,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
   const [color, setColor] = useState('#2563eb');
   const [description, setDescription] = useState('');
   const [showOnHome, setShowOnHome] = useState(true);
+  const [hideInMenu, setHideInMenu] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const resetForm = () => {
@@ -29,6 +30,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
     setColor('#2563eb');
     setDescription('');
     setShowOnHome(true);
+    setHideInMenu(false);
   };
 
   const handleStartEdit = (cat: Category) => {
@@ -38,6 +40,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
     setColor(cat.color || '#2563eb');
     setDescription(cat.description || '');
     setShowOnHome(cat.showOnHome ?? true);
+    setHideInMenu(cat.hideInMenu ?? false);
   };
 
   const handleToggleShowOnHome = (cat: Category) => {
@@ -56,6 +59,22 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
     setTimeout(() => setMessage(null), 3000);
   };
 
+  const handleToggleHideInMenu = (cat: Category) => {
+    const updated = {
+      ...cat,
+      hideInMenu: !cat.hideInMenu
+    };
+    storageService.saveCategory(updated);
+    onRefresh();
+    setMessage({
+      type: 'success',
+      text: updated.hideInMenu
+        ? `Categoria "${cat.name}" foi ocultada do menu superior.`
+        : `Categoria "${cat.name}" agora é visível no menu superior!`
+    });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -70,6 +89,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
       color,
       description: description.trim(),
       showOnHome,
+      hideInMenu,
       order: editingId ? (categories.find(c => c.id === editingId)?.order || categories.length) : categories.length + 1
     });
 
@@ -222,6 +242,25 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
               </p>
             </div>
 
+            {/* Hide in Navigation Menu Toggle */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideInMenu}
+                  onChange={(e) => setHideInMenu(e.target.checked)}
+                  className="w-4 h-4 text-red-600 rounded focus:ring-red-500 cursor-pointer"
+                />
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <EyeOff className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Ocultar esta categoria do Menu Superior (Header)</span>
+                </span>
+              </label>
+              <p className="text-[11px] text-slate-500 pl-6 leading-tight">
+                Se marcado, a categoria não aparecerá na barra de menu do cabeçalho nem no menu móvel.
+              </p>
+            </div>
+
             <div className="pt-2 flex items-center justify-end gap-2">
               {editingId && (
                 <button
@@ -277,7 +316,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
                       style={{ backgroundColor: cat.color || '#2563eb' }} 
                     />
                     <div className="truncate">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{cat.name}</p>
                         {isVisibleOnHome ? (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
@@ -290,12 +329,31 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
                             <span>Oculta da Home</span>
                           </span>
                         )}
+                        {cat.hideInMenu && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                            <span>Oculta no Menu</span>
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-400">/{cat.slug} • {articleCount} matérias</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {/* Instant Toggle Menu Visibility */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleHideInMenu(cat)}
+                      className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
+                        !cat.hideInMenu
+                          ? 'text-slate-600 hover:bg-slate-200'
+                          : 'text-amber-700 bg-amber-100/70 hover:bg-amber-200'
+                      }`}
+                      title={cat.hideInMenu ? 'Oculta do Menu. Clique para exibir no menu' : 'Visível no Menu. Clique para ocultar do menu'}
+                    >
+                      <Layers className="w-4 h-4" />
+                    </button>
+
                     {/* Instant Toggle Home Visibility */}
                     <button
                       type="button"

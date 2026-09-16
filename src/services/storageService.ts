@@ -1,5 +1,6 @@
-import { Article, Category, Banner, VisualIdentity, FacebookConfig, FacebookLog, BannerPosition } from '../types';
-import { initialArticles, initialCategories, initialBanners, initialVisualIdentity, initialFacebookConfig } from '../data/initialData';
+import { Article, Category, Banner, VisualIdentity, FacebookConfig, FacebookLog, BannerPosition, SitePopup, BusinessGuideConfig, BusinessStore, BusinessProductService } from '../types';
+import { initialArticles, initialCategories, initialBanners, initialVisualIdentity, initialFacebookConfig, initialSitePopup } from '../data/initialData';
+import { initialBusinessGuideConfig, initialBusinessStores, initialBusinessProducts } from '../data/initialBusinesses';
 import { applyThemeColors, applyThemeTypography, DEFAULT_COLORS, DEFAULT_TYPOGRAPHY } from './themeService';
 
 const STORAGE_KEYS = {
@@ -10,6 +11,10 @@ const STORAGE_KEYS = {
   FB_CONFIG: 'portal_news_fb_config_v1',
   FB_LOGS: 'portal_news_fb_logs_v1',
   ADMIN_AUTH: 'portal_news_admin_auth_v1',
+  POPUP: 'portal_news_site_popup_v1',
+  BUSINESS_CONFIG: 'portal_news_business_config_v1',
+  BUSINESS_STORES: 'portal_news_business_stores_v1',
+  BUSINESS_PRODUCTS: 'portal_news_business_products_v1',
 };
 
 // YouTube ID Extractor helper
@@ -208,6 +213,7 @@ export const storageService = {
           color: category.color || '#2563eb',
           description: category.description || '',
           showOnHome: category.showOnHome ?? true,
+          hideInMenu: category.hideInMenu ?? false,
         };
         categories.push(saved);
       }
@@ -220,6 +226,7 @@ export const storageService = {
         color: category.color || '#2563eb',
         description: category.description || '',
         showOnHome: category.showOnHome ?? true,
+        hideInMenu: category.hideInMenu ?? false,
       };
       categories.push(saved);
     }
@@ -308,6 +315,7 @@ export const storageService = {
         clicks: 0,
         type: banner.type || (banner.position === 'sidebar' ? 'supporter' : 'commercial'),
         badgeText: banner.badgeText || '',
+        showText: banner.showText ?? true,
       };
       banners.push(saved);
     }
@@ -465,6 +473,163 @@ export const storageService = {
     window.dispatchEvent(new Event('portal_data_updated'));
   },
 
+  // Site PopUp with Attached Image
+  getSitePopup(): SitePopup {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.POPUP);
+      if (data) {
+        const parsed = JSON.parse(data);
+        return {
+          ...initialSitePopup,
+          ...parsed,
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load site popup from storage', e);
+    }
+    this.saveSitePopup(initialSitePopup);
+    return initialSitePopup;
+  },
+
+  saveSitePopup(popup: Partial<SitePopup>): SitePopup {
+    try {
+      const current = this.getSitePopup();
+      const updated: SitePopup = {
+        ...current,
+        ...popup,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(STORAGE_KEYS.POPUP, JSON.stringify(updated));
+      window.dispatchEvent(new Event('portal_data_updated'));
+      return updated;
+    } catch (e) {
+      console.error('Failed to save site popup', e);
+      return initialSitePopup;
+    }
+  },
+
+  // Business Guide (Guia Empresarial) Configuration
+  getBusinessGuideConfig(): BusinessGuideConfig {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.BUSINESS_CONFIG);
+      if (data) {
+        return {
+          ...initialBusinessGuideConfig,
+          ...JSON.parse(data),
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load business guide config', e);
+    }
+    this.saveBusinessGuideConfig(initialBusinessGuideConfig);
+    return initialBusinessGuideConfig;
+  },
+
+  saveBusinessGuideConfig(config: Partial<BusinessGuideConfig>): BusinessGuideConfig {
+    try {
+      const current = this.getBusinessGuideConfig();
+      const updated: BusinessGuideConfig = {
+        ...current,
+        ...config,
+      };
+      localStorage.setItem(STORAGE_KEYS.BUSINESS_CONFIG, JSON.stringify(updated));
+      window.dispatchEvent(new Event('portal_data_updated'));
+      return updated;
+    } catch (e) {
+      console.error('Failed to save business guide config', e);
+      return initialBusinessGuideConfig;
+    }
+  },
+
+  // Business Stores (Lojas do Guia)
+  getBusinessStores(): BusinessStore[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.BUSINESS_STORES);
+      if (data) {
+        const parsed: BusinessStore[] = JSON.parse(data);
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load business stores', e);
+    }
+    this.saveBusinessStores(initialBusinessStores);
+    return initialBusinessStores;
+  },
+
+  saveBusinessStores(stores: BusinessStore[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.BUSINESS_STORES, JSON.stringify(stores));
+      window.dispatchEvent(new Event('portal_data_updated'));
+    } catch (e) {
+      console.error('Failed to save business stores', e);
+    }
+  },
+
+  saveBusinessStore(store: BusinessStore): void {
+    const stores = this.getBusinessStores();
+    const index = stores.findIndex(s => s.id === store.id);
+    if (index >= 0) {
+      stores[index] = store;
+    } else {
+      stores.unshift(store);
+    }
+    this.saveBusinessStores(stores);
+  },
+
+  deleteBusinessStore(id: string): void {
+    const stores = this.getBusinessStores().filter(s => s.id !== id);
+    this.saveBusinessStores(stores);
+    // Also delete associated products
+    const products = this.getBusinessProducts().filter(p => p.businessId !== id);
+    this.saveBusinessProducts(products);
+  },
+
+  // Business Products / Services (Produtos e Serviços)
+  getBusinessProducts(businessId?: string): BusinessProductService[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.BUSINESS_PRODUCTS);
+      if (data) {
+        const parsed: BusinessProductService[] = JSON.parse(data);
+        if (businessId) {
+          return parsed.filter(p => p.businessId === businessId);
+        }
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load business products', e);
+    }
+    this.saveBusinessProducts(initialBusinessProducts);
+    if (businessId) {
+      return initialBusinessProducts.filter(p => p.businessId === businessId);
+    }
+    return initialBusinessProducts;
+  },
+
+  saveBusinessProducts(products: BusinessProductService[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.BUSINESS_PRODUCTS, JSON.stringify(products));
+      window.dispatchEvent(new Event('portal_data_updated'));
+    } catch (e) {
+      console.error('Failed to save business products', e);
+    }
+  },
+
+  saveBusinessProduct(product: BusinessProductService): void {
+    const products = this.getBusinessProducts();
+    const index = products.findIndex(p => p.id === product.id);
+    if (index >= 0) {
+      products[index] = product;
+    } else {
+      products.unshift(product);
+    }
+    this.saveBusinessProducts(products);
+  },
+
+  deleteBusinessProduct(id: string): void {
+    const products = this.getBusinessProducts().filter(p => p.id !== id);
+    this.saveBusinessProducts(products);
+  },
+
   // Reset to original demo content
   resetAllToDefault(): void {
     this.saveArticles(initialArticles);
@@ -472,6 +637,10 @@ export const storageService = {
     this.saveBanners(initialBanners);
     this.saveVisualIdentity(initialVisualIdentity);
     this.saveFacebookConfig(initialFacebookConfig);
+    this.saveSitePopup(initialSitePopup);
+    this.saveBusinessGuideConfig(initialBusinessGuideConfig);
+    this.saveBusinessStores(initialBusinessStores);
+    this.saveBusinessProducts(initialBusinessProducts);
     this.clearFacebookLogs();
   }
 };

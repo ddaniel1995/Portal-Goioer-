@@ -9,14 +9,17 @@ import {
   Twitter, 
   Youtube, 
   MessageCircle,
-  ArrowUp
+  ArrowUp,
+  Store
 } from 'lucide-react';
-import { Category, VisualIdentity } from '../types';
+import { Category, VisualIdentity, BusinessGuideConfig } from '../types';
 import { Logo } from './Logo';
 
 interface FooterProps {
   identity: VisualIdentity;
   categories: Category[];
+  businessGuideConfig?: BusinessGuideConfig;
+  onOpenBusinessGuide?: () => void;
   onSelectCategory: (categoryId: string) => void;
   onGoHome: () => void;
   onOpenAdmin: () => void;
@@ -25,6 +28,8 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({
   identity,
   categories,
+  businessGuideConfig,
+  onOpenBusinessGuide,
   onSelectCategory,
   onGoHome,
   onOpenAdmin,
@@ -129,7 +134,19 @@ export const Footer: React.FC<FooterProps> = ({
                   Últimas Notícias
                 </button>
               </li>
-              {categories.map((cat) => (
+              {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenBusinessGuide}
+                    className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left text-emerald-400"
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
+                  </button>
+                </li>
+              )}
+              {categories.filter(c => !c.hideInMenu).map((cat) => (
                 <li key={cat.id}>
                   <button
                     type="button"
