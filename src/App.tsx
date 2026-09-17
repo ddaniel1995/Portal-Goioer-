@@ -6,6 +6,7 @@ import {
   useLocation, 
   Navigate 
 } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { 
   Article, 
   Category, 
@@ -385,6 +386,9 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   );
 }
