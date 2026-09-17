@@ -88,13 +88,52 @@ export const storageService = {
     return cleanEmail === creds.email.toLowerCase() && cleanPass === creds.password;
   },
 
+  // Helper to get deleted IDs set
+  getDeletedArticleIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem('portal_deleted_article_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  getDeletedCategoryIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem('portal_deleted_category_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  getDeletedBannerIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem('portal_deleted_banner_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
   // Articles
   getArticles(): Article[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ARTICLES);
-      if (data) {
+      const deletedIds = this.getDeletedArticleIds();
+
+      if (data !== null) {
         let parsed: Article[] = JSON.parse(data);
         let changed = false;
+
+        // Filter out any articles marked as deleted
+        if (deletedIds.size > 0) {
+          const originalLen = parsed.length;
+          parsed = parsed.filter(a => !deletedIds.has(a.id));
+          if (parsed.length !== originalLen) {
+            changed = true;
+          }
+        }
 
         // Ensure every article has a valid URL-safe slug
         parsed = parsed.map(a => {
@@ -105,26 +144,6 @@ export const storageService = {
           return a;
         });
 
-        // Ensure initial podcast episodes exist if none are found in current storage
-        const hasPodcastArticles = parsed.some(a => a.categoryId === 'cat-podcast');
-        if (!hasPodcastArticles) {
-          const podcastArticles = initialArticles.filter(a => a.categoryId === 'cat-podcast');
-          if (podcastArticles.length > 0) {
-            parsed = [...parsed, ...podcastArticles];
-            changed = true;
-          }
-        }
-
-        // Ensure Goioerê article is included
-        const hasGoioereArticle = parsed.some(a => a.categoryId === 'cat-goioere');
-        if (!hasGoioereArticle) {
-          const goioereArticles = initialArticles.filter(a => a.categoryId === 'cat-goioere');
-          if (goioereArticles.length > 0) {
-            parsed = [...goioereArticles, ...parsed];
-            changed = true;
-          }
-        }
-
         if (changed) {
           this.saveArticles(parsed);
         }
@@ -133,8 +152,12 @@ export const storageService = {
     } catch (e) {
       console.error('Failed to load articles from storage', e);
     }
-    this.saveArticles(initialArticles);
-    return initialArticles;
+
+    // First initialization: seed with initial articles excluding any previously deleted
+    const deletedIds = this.getDeletedArticleIds();
+    const seeded = initialArticles.filter(a => !deletedIds.has(a.id));
+    this.saveArticles(seeded);
+    return seeded;
   },
 
   saveArticles(articles: Article[]): void {
@@ -225,6 +248,16 @@ export const storageService = {
   },
 
   deleteArticle(id: string): void {
+    // 1. Permanently track in deleted IDs
+    const deletedIds = this.getDeletedArticleIds();
+    deletedIds.add(id);
+    try {
+      localStorage.setItem('portal_deleted_article_ids', JSON.stringify(Array.from(deletedIds)));
+    } catch (e) {
+      console.error('Failed to save deleted article id list:', e);
+    }
+
+    // 2. Remove from active list
     const articles = this.getArticles().filter(a => a.id !== id);
     this.saveArticles(articles);
   },
@@ -342,6 +375,13 @@ export const storageService = {
     if (hasArticles) {
       return false; // Prevent deleting category in use
     }
+    const deletedIds = this.getDeletedCategoryIds();
+    deletedIds.add(id);
+    try {
+      localStorage.setItem('portal_deleted_category_ids', JSON.stringify(Array.from(deletedIds)));
+    } catch (e) {
+      console.error('Failed to save deleted category id:', e);
+    }
     const filtered = this.getCategories().filter(c => c.id !== id);
     this.saveCategories(filtered);
     return true;
@@ -351,25 +391,22 @@ export const storageService = {
   getBanners(): Banner[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.BANNERS);
-      if (data) {
-        const parsed: Banner[] = JSON.parse(data);
-        // Ensure body_slideshow banners exist if none in storage
-        const hasBodySlideshow = parsed.some(b => b.position === 'body_slideshow');
-        if (!hasBodySlideshow) {
-          const bodyBanners = initialBanners.filter(b => b.position === 'body_slideshow');
-          if (bodyBanners.length > 0) {
-            const merged = [...parsed, ...bodyBanners];
-            this.saveBanners(merged);
-            return merged;
-          }
+      const deletedIds = this.getDeletedBannerIds();
+
+      if (data !== null) {
+        let parsed: Banner[] = JSON.parse(data);
+        if (deletedIds.size > 0) {
+          parsed = parsed.filter(b => !deletedIds.has(b.id));
         }
         return parsed;
       }
     } catch (e) {
       console.error('Failed to load banners', e);
     }
-    this.saveBanners(initialBanners);
-    return initialBanners;
+    const deletedIds = this.getDeletedBannerIds();
+    const seeded = initialBanners.filter(b => !deletedIds.has(b.id));
+    this.saveBanners(seeded);
+    return seeded;
   },
 
   saveBanners(banners: Banner[]): void {
@@ -426,6 +463,13 @@ export const storageService = {
   },
 
   deleteBanner(id: string): void {
+    const deletedIds = this.getDeletedBannerIds();
+    deletedIds.add(id);
+    try {
+      localStorage.setItem('portal_deleted_banner_ids', JSON.stringify(Array.from(deletedIds)));
+    } catch (e) {
+      console.error('Failed to save deleted banner id:', e);
+    }
     const banners = this.getBanners().filter(b => b.id !== id);
     this.saveBanners(banners);
   },

@@ -212,14 +212,18 @@ export const Footer: React.FC<FooterProps> = ({
 
           <div className="flex items-center gap-4">
             {/* Small, discreet minimalist "Painel ADM" button */}
-            <button
-              onClick={onOpenAdmin}
+            <Link
+              to="/adm"
+              onClick={(e) => {
+                e.preventDefault();
+                onOpenAdmin();
+              }}
               aria-label="Acessar Painel Administrativo"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-normal text-slate-400 hover:text-slate-200 bg-slate-800/40 hover:bg-slate-800 rounded transition-colors border border-slate-800"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-normal text-slate-400 hover:text-slate-200 bg-slate-800/40 hover:bg-slate-800 rounded transition-colors border border-slate-800 cursor-pointer"
             >
               <Lock className="w-3 h-3 text-slate-500" />
               <span>Painel ADM</span>
-            </button>
+            </Link>
 
             {/* Back to top */}
             <button

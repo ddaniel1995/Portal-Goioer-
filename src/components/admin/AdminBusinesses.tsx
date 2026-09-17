@@ -19,10 +19,15 @@ import {
   ArrowLeft,
   ImageIcon,
   Search,
-  Tag
+  Tag,
+  Loader2,
+  Cloud
 } from 'lucide-react';
 import { BusinessGuideConfig, BusinessStore, BusinessProductService } from '../../types';
 import { storageService, slugify } from '../../services/storageService';
+import { mediaStorageService } from '../../services/mediaStorageService';
+import { supabaseStorageService } from '../../services/supabaseStorageService';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface AdminBusinessesProps {
   onRefresh?: () => void;
@@ -53,6 +58,8 @@ export const AdminBusinesses: React.FC<AdminBusinessesProps> = ({
 
   // Notifications
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'store' | 'product'; id: string; name: string } | null>(null);
 
   // Store Form Fields
   const [storeName, setStoreName] = useState('');
@@ -231,12 +238,7 @@ export const AdminBusinesses: React.FC<AdminBusinessesProps> = ({
 
   // Delete Store
   const handleDeleteStore = (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja remover a loja "${name}" e todos os seus produtos/serviços?`)) {
-      storageService.deleteBusinessStore(id);
-      setMessage({ type: 'success', text: `Loja "${name}" removida com sucesso.` });
-      reloadData();
-      setTimeout(() => setMessage(null), 3000);
-    }
+    setDeleteTarget({ type: 'store', id, name });
   };
 
   // Open Product Form for New or Edit
@@ -309,16 +311,25 @@ export const AdminBusinesses: React.FC<AdminBusinessesProps> = ({
 
   // Delete Product
   const handleDeleteProduct = (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir "${name}"?`)) {
-      storageService.deleteBusinessProduct(id);
-      setMessage({ type: 'success', text: `Item removido com sucesso.` });
-      reloadData();
-      setTimeout(() => setMessage(null), 3000);
-    }
+    setDeleteTarget({ type: 'product', id, name });
   };
 
-  // Image Upload Handlers (FileReader base64)
-  const handleFileUpload = (
+  const executeConfirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'store') {
+      storageService.deleteBusinessStore(deleteTarget.id);
+      setMessage({ type: 'success', text: `Loja "${deleteTarget.name}" removida com sucesso.` });
+    } else {
+      storageService.deleteBusinessProduct(deleteTarget.id);
+      setMessage({ type: 'success', text: `Item "${deleteTarget.name}" removido com sucesso.` });
+    }
+    setDeleteTarget(null);
+    reloadData();
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  // Image Upload Handlers with Supabase & permanent storage
+  const handleFileUpload = async (
     type: 'logo' | 'cover' | 'product',
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -330,19 +341,29 @@ export const AdminBusinesses: React.FC<AdminBusinessesProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        if (type === 'logo') setStoreLogoUrl(reader.result);
-        else if (type === 'cover') setStoreCoverBannerUrl(reader.result);
-        else if (type === 'product') {
-          setProdImages(prev => [...prev, reader.result as string]);
-        }
-        setMessage({ type: 'success', text: 'Imagem carregada com sucesso!' });
-        setTimeout(() => setMessage(null), 2500);
+    setIsUploadingMedia(true);
+    try {
+      const res = await mediaStorageService.processAndUploadImage(file, 'portal');
+      if (type === 'logo') setStoreLogoUrl(res.url);
+      else if (type === 'cover') setStoreCoverBannerUrl(res.url);
+      else if (type === 'product') {
+        setProdImages(prev => [...prev, res.url]);
       }
-    };
-    reader.readAsDataURL(file);
+      setMessage({
+        type: 'success',
+        text: res.provider === 'supabase'
+          ? 'Imagem enviada e anexada ao Supabase Storage!'
+          : 'Imagem salva com sucesso no armazenamento permanente.',
+      });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      console.error('Failed to upload business image:', err);
+      setMessage({ type: 'error', text: 'Erro ao processar imagem. Tente novamente.' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = '';
+    }
   };
 
   const currentStoreForProducts = stores.find(s => s.id === selectedStoreForProducts) || stores[0];

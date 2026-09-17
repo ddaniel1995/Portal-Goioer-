@@ -18,10 +18,15 @@ import {
   Palette,
   Handshake,
   Sparkles,
-  Type
+  Type,
+  Cloud,
+  Loader2
 } from 'lucide-react';
 import { Banner, BannerPosition, BannerType } from '../../types';
 import { storageService } from '../../services/storageService';
+import { mediaStorageService } from '../../services/mediaStorageService';
+import { supabaseStorageService } from '../../services/supabaseStorageService';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface AdminBannersProps {
   banners: Banner[];
@@ -52,6 +57,8 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
   const [height, setHeight] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [bannerToDelete, setBannerToDelete] = useState<Banner | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,23 +78,35 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
     detectImageDimensions(url);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 6 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 6MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImageUrl(reader.result);
-        detectImageDimensions(reader.result);
+    setIsUploading(true);
+    try {
+      const res = await mediaStorageService.processAndUploadImage(file, 'banners');
+      setImageUrl(res.url);
+      detectImageDimensions(res.url);
+      setMessage({
+        type: 'success',
+        text: res.provider === 'supabase'
+          ? 'Banner enviado e anexado com sucesso no Supabase Storage!'
+          : 'Banner salvo com sucesso no armazenamento permanente.',
+      });
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err) {
+      console.error('Failed to upload banner image:', err);
+      setMessage({
+        type: 'error',
+        text: 'Erro ao processar imagem do banner. Tente novamente.',
+      });
+      setTimeout(() => setMessage(null), 4000);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const resetForm = () => {
@@ -215,11 +234,20 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
   };
 
   const handleDelete = (banner: Banner) => {
-    if (window.confirm(`Deseja excluir o banner "${banner.title}"?`)) {
-      storageService.deleteBanner(banner.id);
-      onRefresh();
-      if (editingId === banner.id) resetForm();
-    }
+    setBannerToDelete(banner);
+  };
+
+  const executeConfirmDelete = () => {
+    if (!bannerToDelete) return;
+    storageService.deleteBanner(bannerToDelete.id);
+    onRefresh();
+    if (editingId === bannerToDelete.id) resetForm();
+    setMessage({
+      type: 'success',
+      text: `Banner "${bannerToDelete.title}" excluído com sucesso.`
+    });
+    setBannerToDelete(null);
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const slideshowBanners = banners.filter(b => b.position === 'slideshow').sort((a, b) => a.order - b.order);
@@ -485,20 +513,38 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
                     />
                     <button
                       type="button"
+                      disabled={isUploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0"
+                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload</span>
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-600" />
+                          <span>Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload</span>
+                        </>
+                      )}
                     </button>
                     <input
                       ref={fileInputRef}
                       type="file"
+                      disabled={isUploading}
                       accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.png,.jpg,.jpeg,.webp"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
                   </div>
+
+                  {supabaseStorageService.isConfigured() && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                      <Cloud className="w-3.5 h-3.5" />
+                      <span>Supabase Storage Ativo • Salvo na nuvem permanentemente</span>
+                    </div>
+                  )}
 
                   {width && height && (
                     <div className="mt-2 text-[11px] text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between">
@@ -989,6 +1035,17 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(bannerToDelete)}
+        title="Excluir Banner"
+        itemName={bannerToDelete?.title}
+        message="Tem certeza que deseja excluir este banner? Ele será removido permanentemente e não será restaurado ao recarregar a página."
+        confirmLabel="Sim, Excluir Banner"
+        onConfirm={executeConfirmDelete}
+        onClose={() => setBannerToDelete(null)}
+      />
     </div>
   );
 };

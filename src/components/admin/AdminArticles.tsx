@@ -22,12 +22,17 @@ import {
   Calendar, 
   User,
   X,
-  Share2
+  Share2,
+  Cloud,
+  Loader2
 } from 'lucide-react';
 import { Article, Category } from '../../types';
 import { storageService, extractYoutubeId } from '../../services/storageService';
 import { facebookService } from '../../services/facebookService';
+import { mediaStorageService } from '../../services/mediaStorageService';
+import { supabaseStorageService } from '../../services/supabaseStorageService';
 import { ArticlePreviewModal } from './ArticlePreviewModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface AdminArticlesProps {
   articles: Article[];
@@ -70,9 +75,13 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
   // Feedback states
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPublishingFb, setIsPublishingFb] = useState(false);
+  const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [articleToDelete, setArticleToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   // Effect to sync when editingArticle prop changes
   React.useEffect(() => {
@@ -119,24 +128,63 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
     setIsFormOpen(true);
   };
 
-  // Image Upload handler (converts file to Base64 data URL)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Upload handler with Supabase Cloud + Persistent Storage support
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size limit (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 5MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setFeaturedImage(reader.result);
+    setIsUploadingFeatured(true);
+    try {
+      const result = await mediaStorageService.processAndUploadImage(file, 'materias');
+      setFeaturedImage(result.url);
+      setMessage({
+        type: 'success',
+        text: result.provider === 'supabase'
+          ? 'Imagem enviada e anexada com sucesso no Supabase Storage!'
+          : 'Imagem salva com sucesso no armazenamento permanente.',
+      });
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Failed to upload image:', err);
+      setMessage({
+        type: 'error',
+        text: 'Não foi possível processar a imagem enviada. Tente novamente.',
+      });
+      setTimeout(() => setMessage(null), 4000);
+    } finally {
+      setIsUploadingFeatured(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    }
+  };
+
+  // Gallery multi-image upload
+  const handleGalleryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingGallery(true);
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const res = await mediaStorageService.processAndUploadImage(files[i], 'galeria');
+        if (res.url) newUrls.push(res.url);
+      }
+      setAdditionalImages(prev => [...prev, ...newUrls]);
+      setMessage({
+        type: 'success',
+        text: `${newUrls.length} imagem(ns) anexada(s) à galeria com sucesso!`,
+      });
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err) {
+      console.error('Gallery upload error:', err);
+    } finally {
+      setIsUploadingGallery(false);
+      if (galleryFileInputRef.current) {
+        galleryFileInputRef.current.value = '';
+      }
+    }
   };
 
   // Text formatting insertion helpers
@@ -250,15 +298,29 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
     onRefresh();
   };
 
-  // Delete Article
+  // Delete Article - opens interactive confirmation modal (no blocked window.confirm)
   const handleDelete = (idToDelete: string, titleToDelete: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir a matéria "${titleToDelete}"? Esta ação é irreversível.`)) {
-      storageService.deleteArticle(idToDelete);
-      onRefresh();
-      if (id === idToDelete) {
-        resetForm();
-      }
+    setArticleToDelete({ id: idToDelete, title: titleToDelete });
+  };
+
+  const executeConfirmDelete = () => {
+    if (!articleToDelete) return;
+    const deletedTitle = articleToDelete.title;
+    const deletedId = articleToDelete.id;
+    
+    storageService.deleteArticle(deletedId);
+    onRefresh();
+
+    setMessage({
+      type: 'success',
+      text: `Matéria "${deletedTitle}" excluída com sucesso do portal.`,
+    });
+
+    if (id === deletedId) {
+      resetForm();
     }
+    setArticleToDelete(null);
+    setTimeout(() => setMessage(null), 4000);
   };
 
   // Open Preview Modal
@@ -441,9 +503,21 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
 
             {/* Featured Image Section */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Imagem de Destaque
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Imagem de Destaque
+                </label>
+                {supabaseStorageService.isConfigured() ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full">
+                    <Cloud className="w-3 h-3 text-emerald-600" />
+                    Supabase Storage Conectado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                    Armazenamento Permanente Ativo
+                  </span>
+                )}
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -457,11 +531,21 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
                     />
                     <button
                       type="button"
+                      disabled={isUploadingFeatured}
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0"
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload</span>
+                      {isUploadingFeatured ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload</span>
+                        </>
+                      )}
                     </button>
                     <input
                       ref={fileInputRef}
@@ -643,21 +727,47 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
                 Galeria de Imagens Adicionais
               </label>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input
                   type="url"
                   value={newAddImageUrl}
                   onChange={(e) => setNewAddImageUrl(e.target.value)}
-                  placeholder="URL da imagem adicional..."
+                  placeholder="URL da imagem ou faça upload..."
                   className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800"
                 />
                 <button
                   type="button"
                   onClick={handleAddAdditionalImage}
-                  className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900"
+                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold shrink-0 transition-colors"
                 >
-                  Adicionar à Galeria
+                  Adicionar Link
                 </button>
+                <button
+                  type="button"
+                  disabled={isUploadingGallery}
+                  onClick={() => galleryFileInputRef.current?.click()}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                >
+                  {isUploadingGallery ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Fotos</span>
+                    </>
+                  )}
+                </button>
+                <input
+                  ref={galleryFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleGalleryFileUpload}
+                  className="hidden"
+                />
               </div>
 
               {additionalImages.length > 0 && (
@@ -668,7 +778,8 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveAdditionalImage(i)}
-                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100"
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                        title="Remover imagem"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -726,6 +837,17 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
                   >
                     <Facebook className="w-4 h-4 fill-current" />
                     <span>{isPublishingFb ? 'Publicando...' : 'Publicar agora no Facebook'}</span>
+                  </button>
+                )}
+
+                {id && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(id, title || 'Esta matéria')}
+                    className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <span>Excluir Matéria</span>
                   </button>
                 )}
               </div>
@@ -920,6 +1042,17 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
           onClose={() => setPreviewArticle(null)}
         />
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(articleToDelete)}
+        title="Excluir Matéria"
+        itemName={articleToDelete?.title}
+        message="Tem certeza que deseja excluir esta matéria? Ela será removida permanentemente do portal e não será restaurada ao recarregar a página."
+        confirmLabel="Sim, Excluir Definitivamente"
+        onConfirm={executeConfirmDelete}
+        onClose={() => setArticleToDelete(null)}
+      />
     </div>
   );
 };

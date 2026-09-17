@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Clock, TrendingUp, Calendar, ArrowRight, Store } from 'lucide-react';
+import { Search, Menu, X, Clock, TrendingUp, Calendar, ArrowRight, Store, Lock } from 'lucide-react';
 import { Category, VisualIdentity, BusinessGuideConfig } from '../types';
 import { Logo } from './Logo';
 
@@ -351,9 +351,20 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {identity.showSiteName !== false && (
-              <div className="pt-6 mt-6 border-t border-slate-100 text-xs text-slate-500">
-                <p className="font-medium text-slate-700">{identity.siteName}</p>
-                {identity.tagline && <p className="mt-1">{identity.tagline}</p>}
+              <div className="pt-6 mt-6 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-slate-700">{identity.siteName}</p>
+                  {identity.tagline && <p className="mt-1">{identity.tagline}</p>}
+                </div>
+                <Link
+                  to="/adm"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors"
+                  title="Área Administrativa"
+                >
+                  <Lock className="w-3 h-3 text-slate-400" />
+                  <span>ADM</span>
+                </Link>
               </div>
             )}
           </div>

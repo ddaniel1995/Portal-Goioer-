@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, Layers, Check, AlertCircle, Eye, EyeOff, Home } from 'lucide-react';
 import { Category, Article } from '../../types';
 import { storageService, slugify } from '../../services/storageService';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface AdminCategoriesProps {
   categories: Category[];
@@ -22,6 +23,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
   const [showOnHome, setShowOnHome] = useState(true);
   const [hideInMenu, setHideInMenu] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   const resetForm = () => {
     setEditingId(null);
@@ -105,16 +107,24 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
   const handleDelete = (cat: Category) => {
     const hasArticles = articles.some(a => a.categoryId === cat.id);
     if (hasArticles) {
-      alert(`Não é possível excluir a categoria "${cat.name}" pois existem matérias vinculadas a ela. Mova as matérias antes de excluir.`);
+      setMessage({
+        type: 'error',
+        text: `Não é possível excluir a categoria "${cat.name}" pois existem matérias vinculadas a ela. Reclassifique as matérias antes.`
+      });
+      setTimeout(() => setMessage(null), 4000);
       return;
     }
 
-    if (window.confirm(`Deseja realmente excluir a categoria "${cat.name}"?`)) {
-      storageService.deleteCategory(cat.id);
-      onRefresh();
-      setMessage({ type: 'success', text: 'Categoria removida.' });
-      setTimeout(() => setMessage(null), 3000);
-    }
+    setCategoryToDelete(cat);
+  };
+
+  const executeConfirmDelete = () => {
+    if (!categoryToDelete) return;
+    storageService.deleteCategory(categoryToDelete.id);
+    onRefresh();
+    setMessage({ type: 'success', text: `Categoria "${categoryToDelete.name}" removida com sucesso.` });
+    setCategoryToDelete(null);
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const moveOrder = (index: number, direction: 'up' | 'down') => {
@@ -409,6 +419,17 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(categoryToDelete)}
+        title="Excluir Categoria"
+        itemName={categoryToDelete?.name}
+        message="Tem certeza que deseja excluir esta categoria? Ela não será restaurada ao recarregar a página."
+        confirmLabel="Sim, Excluir Categoria"
+        onConfirm={executeConfirmDelete}
+        onClose={() => setCategoryToDelete(null)}
+      />
     </div>
   );
 };

@@ -94,16 +94,24 @@ export default function App() {
     };
   }, []);
 
-  // Listen to /admin route directly
+  // Listen to /adm and /admin routes directly
   useEffect(() => {
     if (location.pathname === '/admin') {
+      navigate('/adm', { replace: true });
+      return;
+    }
+
+    if (location.pathname === '/adm') {
       if (isAdminAuthenticated) {
         setIsAdminOpen(true);
       } else {
         setIsLoginModalOpen(true);
       }
+    } else {
+      setIsAdminOpen(false);
+      setIsLoginModalOpen(false);
     }
-  }, [location.pathname, isAdminAuthenticated]);
+  }, [location.pathname, isAdminAuthenticated, navigate]);
 
   // Handlers for Navigation
   const handleBannerClick = (banner: Banner) => {
@@ -139,8 +147,9 @@ export default function App() {
     navigate(`/busca?q=${encodeURIComponent(query)}`);
   };
 
-  // Admin Access Handling
+  // Admin Access Handling - Navigate to /adm
   const handleOpenAdminFromFooter = () => {
+    navigate('/adm');
     if (isAdminAuthenticated) {
       setIsAdminOpen(true);
     } else {
@@ -152,12 +161,16 @@ export default function App() {
     setIsAdminAuthenticated(true);
     setIsLoginModalOpen(false);
     setIsAdminOpen(true);
+    if (location.pathname !== '/adm') {
+      navigate('/adm');
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('portal_admin_session');
     setIsAdminAuthenticated(false);
     setIsAdminOpen(false);
+    setIsLoginModalOpen(false);
     navigate('/');
   };
 
@@ -196,9 +209,7 @@ export default function App() {
         onDataChanged={loadPortalData}
         onClose={() => {
           setIsAdminOpen(false);
-          if (location.pathname === '/admin') {
-            navigate('/');
-          }
+          navigate('/');
         }}
         onLogout={handleLogout}
       />
@@ -324,15 +335,16 @@ export default function App() {
             }
           />
 
-          {/* Admin Route fallback */}
+          {/* Admin Routes: /adm and /admin */}
           <Route
-            path="/admin"
+            path="/adm"
             element={
               <div className="py-20 text-center">
-                <p className="text-slate-600">Carregando painel administrativo...</p>
+                <p className="text-slate-600 font-medium">Carregando painel administrativo...</p>
               </div>
             }
           />
+          <Route path="/admin" element={<Navigate to="/adm" replace />} />
 
           {/* Fallback wildcard: redirect to Home */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -362,7 +374,7 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onCancel={() => {
             setIsLoginModalOpen(false);
-            if (location.pathname === '/admin') {
+            if (location.pathname === '/adm' || location.pathname === '/admin') {
               navigate('/');
             }
           }}

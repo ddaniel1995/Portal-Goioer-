@@ -13,7 +13,8 @@ import {
   Plus,
   Sparkles,
   Store,
-  Key
+  Key,
+  Cloud
 } from 'lucide-react';
 import { Article, Category, Banner, VisualIdentity, FacebookConfig, BannerPosition } from '../../types';
 import { AdminDashboard } from './AdminDashboard';
@@ -25,8 +26,9 @@ import { AdminFacebook } from './AdminFacebook';
 import { AdminPopup } from './AdminPopup';
 import { AdminBusinesses } from './AdminBusinesses';
 import { AdminCredentialsManager } from './AdminCredentials';
+import { AdminStorage } from './AdminStorage';
 
-type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'popup' | 'businesses' | 'facebook' | 'security';
+type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'popup' | 'businesses' | 'facebook' | 'storage' | 'security';
 
 interface AdminPanelProps {
   articles: Article[];
@@ -223,6 +225,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('storage')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                activeTab === 'storage'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Imagens & Supabase</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('security')}
               className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
                 activeTab === 'security'
@@ -310,6 +324,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             articles={articles}
             onRefresh={onRefreshData}
           />
+        )}
+
+        {activeTab === 'storage' && (
+          <AdminStorage />
         )}
 
         {activeTab === 'security' && (
