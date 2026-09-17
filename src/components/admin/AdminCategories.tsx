@@ -7,7 +7,7 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 interface AdminCategoriesProps {
   categories: Category[];
   articles: Article[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export const AdminCategories: React.FC<AdminCategoriesProps> = ({
@@ -51,7 +51,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
       showOnHome: !(cat.showOnHome ?? true)
     };
     storageService.saveCategory(updated);
-    onRefresh();
+    onRefresh?.();
     setMessage({
       type: 'success',
       text: updated.showOnHome
@@ -67,7 +67,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
       hideInMenu: !cat.hideInMenu
     };
     storageService.saveCategory(updated);
-    onRefresh();
+    onRefresh?.();
     setMessage({
       type: 'success',
       text: updated.hideInMenu
@@ -100,7 +100,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
       text: editingId ? 'Categoria atualizada com sucesso!' : 'Nova categoria criada com sucesso!' 
     });
     resetForm();
-    onRefresh();
+    onRefresh?.();
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -121,7 +121,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
   const executeConfirmDelete = () => {
     if (!categoryToDelete) return;
     storageService.deleteCategory(categoryToDelete.id);
-    onRefresh();
+    onRefresh?.();
     setMessage({ type: 'success', text: `Categoria "${categoryToDelete.name}" removida com sucesso.` });
     setCategoryToDelete(null);
     setTimeout(() => setMessage(null), 3000);
@@ -142,7 +142,7 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
     });
 
     storageService.saveCategories(newCategories);
-    onRefresh();
+    onRefresh?.();
   };
 
   return (

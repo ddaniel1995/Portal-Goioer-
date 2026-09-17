@@ -206,7 +206,12 @@ export default function App() {
         businessConfig={businessConfig}
         businessStores={businessStores}
         businessProducts={businessProducts}
+        onRefreshData={loadPortalData}
         onDataChanged={loadPortalData}
+        onCloseAdmin={() => {
+          setIsAdminOpen(false);
+          navigate('/');
+        }}
         onClose={() => {
           setIsAdminOpen(false);
           navigate('/');

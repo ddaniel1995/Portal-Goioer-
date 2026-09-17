@@ -7,7 +7,7 @@ import { Logo } from '../Logo';
 
 interface AdminIdentityProps {
   identity: VisualIdentity;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 const COLOR_PRESETS = [
@@ -165,7 +165,7 @@ export const AdminIdentity: React.FC<AdminIdentityProps> = ({ identity, onRefres
 
     storageService.saveVisualIdentity(updated);
     setMessage({ type: 'success', text: 'Identidade visual, fontes, logos e cores atualizados com sucesso!' });
-    onRefresh();
+    onRefresh?.();
     setTimeout(() => setMessage(null), 3500);
   };
 

@@ -39,7 +39,7 @@ interface AdminArticlesProps {
   categories: Category[];
   editingArticle?: Article | null;
   onClearEditing: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export const AdminArticles: React.FC<AdminArticlesProps> = ({
@@ -278,7 +278,7 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
       }
     }
 
-    onRefresh();
+    onRefresh?.();
     setTimeout(() => {
       resetForm();
     }, 1200);
@@ -295,7 +295,7 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
     } else {
       alert(`Aviso: ${result.message}`);
     }
-    onRefresh();
+    onRefresh?.();
   };
 
   // Delete Article - opens interactive confirmation modal (no blocked window.confirm)
@@ -309,7 +309,7 @@ export const AdminArticles: React.FC<AdminArticlesProps> = ({
     const deletedId = articleToDelete.id;
     
     storageService.deleteArticle(deletedId);
-    onRefresh();
+    onRefresh?.();
 
     setMessage({
       type: 'success',

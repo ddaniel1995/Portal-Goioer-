@@ -30,7 +30,7 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface AdminBannersProps {
   banners: Banner[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
   initialFormOpen?: boolean;
   initialPosition?: BannerPosition;
   onClearInitialFormOpen?: () => void;
@@ -168,7 +168,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
       ...banner,
       showText: !(banner.showText !== false)
     });
-    onRefresh();
+    onRefresh?.();
     setMessage({
       type: 'success',
       text: banner.showText !== false
@@ -221,7 +221,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
       text: editingId ? 'Banner atualizado com sucesso!' : 'Novo banner cadastrado com sucesso!' 
     });
     resetForm();
-    onRefresh();
+    onRefresh?.();
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -230,7 +230,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
       ...banner,
       active: !banner.active
     });
-    onRefresh();
+    onRefresh?.();
   };
 
   const handleDelete = (banner: Banner) => {
@@ -240,7 +240,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({
   const executeConfirmDelete = () => {
     if (!bannerToDelete) return;
     storageService.deleteBanner(bannerToDelete.id);
-    onRefresh();
+    onRefresh?.();
     if (editingId === bannerToDelete.id) resetForm();
     setMessage({
       type: 'success',

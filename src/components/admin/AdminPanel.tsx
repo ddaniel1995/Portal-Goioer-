@@ -36,8 +36,14 @@ interface AdminPanelProps {
   banners: Banner[];
   identity: VisualIdentity;
   facebookConfig: FacebookConfig;
-  onRefreshData: () => void;
-  onCloseAdmin: () => void;
+  sitePopup?: any;
+  businessConfig?: any;
+  businessStores?: any[];
+  businessProducts?: any[];
+  onRefreshData?: () => void;
+  onDataChanged?: () => void;
+  onCloseAdmin?: () => void;
+  onClose?: () => void;
   onLogout: () => void;
   onOpenStorePreview?: (slug: string) => void;
 }
@@ -49,7 +55,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   identity,
   facebookConfig,
   onRefreshData,
+  onDataChanged,
   onCloseAdmin,
+  onClose,
   onLogout,
   onOpenStorePreview,
 }) => {
@@ -57,6 +65,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [openBannerForm, setOpenBannerForm] = useState<boolean>(false);
   const [initialBannerPosition, setInitialBannerPosition] = useState<BannerPosition>('slideshow');
+
+  const handleRefresh = () => {
+    if (typeof onRefreshData === 'function') onRefreshData();
+    if (typeof onDataChanged === 'function') onDataChanged();
+  };
+
+  const handleClose = () => {
+    if (typeof onCloseAdmin === 'function') onCloseAdmin();
+    if (typeof onClose === 'function') onClose();
+  };
 
   const handleNewArticle = () => {
     setEditingArticle(null);
@@ -81,7 +99,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={onCloseAdmin}
+              onClick={handleClose}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-bold"
               title="Voltar ao portal público"
             >
@@ -276,7 +294,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             categories={categories}
             editingArticle={editingArticle}
             onClearEditing={() => setEditingArticle(null)}
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
           />
         )}
 
@@ -284,14 +302,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <AdminCategories
             categories={categories}
             articles={articles}
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
           />
         )}
 
         {activeTab === 'banners' && (
           <AdminBanners
             banners={banners}
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
             initialFormOpen={openBannerForm}
             initialPosition={initialBannerPosition}
             onClearInitialFormOpen={() => setOpenBannerForm(false)}
@@ -301,19 +319,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         {activeTab === 'identity' && (
           <AdminIdentity
             identity={identity}
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
           />
         )}
 
         {activeTab === 'popup' && (
           <AdminPopup
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
           />
         )}
 
         {activeTab === 'businesses' && (
           <AdminBusinesses
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
             onPreviewStore={onOpenStorePreview}
           />
         )}
@@ -322,7 +340,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <AdminFacebook
             config={facebookConfig}
             articles={articles}
-            onRefresh={onRefreshData}
+            onRefresh={handleRefresh}
           />
         )}
 
@@ -341,7 +359,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <span>Sistema de Gerenciamento de Conteúdo Editorial • Versão 2.4</span>
           <div className="flex items-center gap-3">
             <button
-              onClick={onCloseAdmin}
+              onClick={handleClose}
               className="text-slate-600 hover:text-red-600 font-semibold"
             >
               Voltar ao Site Público

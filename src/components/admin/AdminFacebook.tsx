@@ -22,7 +22,7 @@ import { facebookService } from '../../services/facebookService';
 interface AdminFacebookProps {
   config: FacebookConfig;
   articles: Article[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export const AdminFacebook: React.FC<AdminFacebookProps> = ({ config, articles, onRefresh }) => {
@@ -57,7 +57,7 @@ export const AdminFacebook: React.FC<AdminFacebookProps> = ({ config, articles, 
 
     storageService.saveFacebookConfig(updated);
     setMessage({ type: 'success', text: 'Configurações da Meta/Facebook Graph API salvas com sucesso!' });
-    onRefresh();
+    onRefresh?.();
     setTimeout(() => setMessage(null), 3500);
   };
 
@@ -89,7 +89,7 @@ export const AdminFacebook: React.FC<AdminFacebookProps> = ({ config, articles, 
       ...config,
       connected: nextState
     });
-    onRefresh();
+    onRefresh?.();
   };
 
   const handleRetryPublish = async (log: FacebookLog) => {
@@ -108,7 +108,7 @@ export const AdminFacebook: React.FC<AdminFacebookProps> = ({ config, articles, 
     } else {
       alert(`Falha no reenvio: ${res.message}`);
     }
-    onRefresh();
+    onRefresh?.();
   };
 
   // Preview generated text using sample article
@@ -375,7 +375,7 @@ export const AdminFacebook: React.FC<AdminFacebookProps> = ({ config, articles, 
               onClick={() => {
                 if (window.confirm('Deseja limpar os logs de publicação do Facebook?')) {
                   storageService.clearFacebookLogs();
-                  onRefresh();
+                  onRefresh?.();
                 }
               }}
               className="text-xs text-slate-400 hover:text-red-600"
