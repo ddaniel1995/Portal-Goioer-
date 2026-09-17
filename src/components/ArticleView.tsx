@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Clock, 
   Calendar, 
@@ -120,11 +121,15 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-1.5 text-xs text-slate-500 mb-6 flex-wrap" aria-label="Navegação estrutural">
-        <button type="button" onClick={onGoHome} className="hover:text-red-600 font-medium cursor-pointer">Início</button>
+        <Link to="/" onClick={onGoHome} className="hover:text-red-600 font-medium cursor-pointer">Início</Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <button type="button" onClick={() => onSelectCategory(article.categoryId)} className="hover:text-red-600 font-medium text-slate-700 cursor-pointer">
+        <Link 
+          to={`/noticias/${article.categorySlug || article.categoryId}`} 
+          onClick={() => onSelectCategory(article.categoryId)} 
+          className="hover:text-red-600 font-medium text-slate-700 cursor-pointer"
+        >
           {article.categoryName}
-        </button>
+        </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         <span className="text-slate-400 truncate max-w-xs sm:max-w-md">{article.title}</span>
       </nav>
@@ -135,13 +140,13 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
           <article className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-8 md:p-10 shadow-xs">
             {/* Category Tag & Top Meta */}
             <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-              <button
-                type="button"
+              <Link
+                to={`/noticias/${article.categorySlug || article.categoryId}`}
                 onClick={() => onSelectCategory(article.categoryId)}
-                className="px-3 py-1 rounded-md bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition-colors shadow-xs cursor-pointer"
+                className="px-3 py-1 rounded-md bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition-colors shadow-xs cursor-pointer inline-block"
               >
                 {article.categoryName}
-              </button>
+              </Link>
 
               <div className="flex items-center gap-3 text-xs text-slate-500">
                 <span className="flex items-center gap-1">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Lock, 
   Mail, 
@@ -50,9 +51,9 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Col 1 & 2: Brand, Description, Social Media */}
           <div className="lg:col-span-2 space-y-4">
-            <div onClick={onGoHome} className="cursor-pointer inline-block">
+            <Link to="/" onClick={onGoHome} className="cursor-pointer inline-block">
               <Logo identity={identity} variant="mono" size="md" />
-            </div>
+            </Link>
 
             <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-md">
               {identity.description || 'Jornalismo sério, independente e em tempo real. Informação com qualidade, ética e compromisso com o leitor brasileiro.'}
@@ -125,36 +126,36 @@ export const Footer: React.FC<FooterProps> = ({
             </h3>
             <ul className="space-y-2 text-xs">
               <li>
-                <button
-                  type="button"
+                <Link
+                  to="/noticias"
                   onClick={() => onSelectCategory('cat-ultimas')}
-                  className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left inline-flex"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                   Últimas Notícias
-                </button>
+                </Link>
               </li>
-              {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+              {businessGuideConfig?.enabled !== false && (
                 <li>
-                  <button
-                    type="button"
+                  <Link
+                    to="/guia-empresarial"
                     onClick={onOpenBusinessGuide}
-                    className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left text-emerald-400"
+                    className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-left text-emerald-400 inline-flex"
                   >
                     <Store className="w-3.5 h-3.5" />
                     <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
-                  </button>
+                  </Link>
                 </li>
               )}
               {categories.filter(c => !c.hideInMenu).map((cat) => (
                 <li key={cat.id}>
-                  <button
-                    type="button"
+                  <Link
+                    to={`/noticias/${cat.slug || cat.id}`}
                     onClick={() => onSelectCategory(cat.id)}
-                    className="hover:text-white transition-colors cursor-pointer text-left"
+                    className="hover:text-white transition-colors cursor-pointer text-left inline-block"
                   >
                     {cat.name}
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -1,10 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Play, ArrowRight, BookOpen } from 'lucide-react';
 import { Article } from '../types';
 
 interface ArticleCardProps {
   article: Article;
-  onSelect: (articleIdOrSlug: string) => void;
+  onSelect?: (articleIdOrSlug: string) => void;
   variant?: 'standard' | 'featured' | 'compact' | 'horizontal';
   featured?: boolean;
 }
@@ -15,6 +16,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   variant = 'standard',
   featured = false,
 }) => {
+  const navigate = useNavigate();
   const effectiveVariant = featured ? 'featured' : variant;
 
   // Format date in PT-BR (day + short month)
@@ -30,12 +32,20 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
   const hasVideo = Boolean(article.youtubeUrl);
   const targetId = article.slug || article.id;
+  const articleUrl = article.categorySlug
+    ? `/noticias/${article.categorySlug}/${targetId}`
+    : `/noticias/${targetId}`;
+
+  const handleClick = () => {
+    if (onSelect) onSelect(targetId);
+    navigate(articleUrl);
+  };
 
   // 1. COMPACT ROW / HORIZONTAL VARIANT (Space-saving, modern)
   if (effectiveVariant === 'horizontal' || effectiveVariant === 'compact') {
     return (
       <article
-        onClick={() => onSelect(targetId)}
+        onClick={handleClick}
         className="group bg-white rounded-xl border border-slate-200/80 hover:border-red-300 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer flex gap-3.5 p-3 items-center"
       >
         <div className="relative w-24 sm:w-28 h-20 sm:h-22 shrink-0 rounded-lg overflow-hidden bg-slate-100">
@@ -86,7 +96,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   if (effectiveVariant === 'featured') {
     return (
       <article
-        onClick={() => onSelect(targetId)}
+        onClick={handleClick}
         className="group bg-white rounded-2xl border border-slate-200/90 hover:border-red-200 hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer flex flex-col md:flex-row gap-0"
       >
         {/* Left / Top Image - Controlled compact proportion */}
@@ -151,7 +161,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 3. STANDARD COMPACT VERTICAL CARD (Distinctive, tighter height, modern editorial style)
   return (
     <article
-      onClick={() => onSelect(targetId)}
+      onClick={handleClick}
       className="group bg-white rounded-xl border border-slate-200/80 hover:border-red-200 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer flex flex-col h-full"
     >
       {/* Thumbnail with 16:9 proportion and subtle zoom */}

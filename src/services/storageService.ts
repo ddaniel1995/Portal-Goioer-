@@ -3,6 +3,7 @@ import { initialArticles, initialCategories, initialBanners, initialVisualIdenti
 import { initialBusinessGuideConfig, initialBusinessStores, initialBusinessProducts } from '../data/initialBusinesses';
 import { applyThemeColors, applyThemeTypography, DEFAULT_COLORS, DEFAULT_TYPOGRAPHY } from './themeService';
 
+// Storage keys
 const STORAGE_KEYS = {
   ARTICLES: 'portal_news_articles_v1',
   CATEGORIES: 'portal_news_categories_v1',
@@ -15,6 +16,17 @@ const STORAGE_KEYS = {
   BUSINESS_CONFIG: 'portal_news_business_config_v1',
   BUSINESS_STORES: 'portal_news_business_stores_v1',
   BUSINESS_PRODUCTS: 'portal_news_business_products_v1',
+};
+
+export interface AdminCredentials {
+  email: string;
+  password: string;
+  updatedAt?: string;
+}
+
+const DEFAULT_ADMIN_CREDENTIALS: AdminCredentials = {
+  email: 'admin@portal.com',
+  password: 'admin123',
 };
 
 // YouTube ID Extractor helper
@@ -38,21 +50,83 @@ export function slugify(text: string): string {
 
 // Storage helpers
 export const storageService = {
+  // Admin Credentials
+  getAdminCredentials(): AdminCredentials {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed?.email && parsed?.password) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load admin credentials from storage', e);
+    }
+    return DEFAULT_ADMIN_CREDENTIALS;
+  },
+
+  saveAdminCredentials(creds: { email: string; password: string }): AdminCredentials {
+    const updated: AdminCredentials = {
+      email: creds.email.trim(),
+      password: creds.password.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(updated));
+      window.dispatchEvent(new Event('portal_admin_credentials_updated'));
+    } catch (e) {
+      console.error('Failed to save admin credentials to storage', e);
+    }
+    return updated;
+  },
+
+  validateAdminCredentials(email: string, pass: string): boolean {
+    const creds = this.getAdminCredentials();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (pass || '').trim();
+    return cleanEmail === creds.email.toLowerCase() && cleanPass === creds.password;
+  },
+
   // Articles
   getArticles(): Article[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ARTICLES);
       if (data) {
-        const parsed: Article[] = JSON.parse(data);
+        let parsed: Article[] = JSON.parse(data);
+        let changed = false;
+
+        // Ensure every article has a valid URL-safe slug
+        parsed = parsed.map(a => {
+          if (!a.slug || a.slug.trim() === '') {
+            changed = true;
+            return { ...a, slug: slugify(a.title) };
+          }
+          return a;
+        });
+
         // Ensure initial podcast episodes exist if none are found in current storage
         const hasPodcastArticles = parsed.some(a => a.categoryId === 'cat-podcast');
         if (!hasPodcastArticles) {
           const podcastArticles = initialArticles.filter(a => a.categoryId === 'cat-podcast');
           if (podcastArticles.length > 0) {
-            const merged = [...parsed, ...podcastArticles];
-            this.saveArticles(merged);
-            return merged;
+            parsed = [...parsed, ...podcastArticles];
+            changed = true;
           }
+        }
+
+        // Ensure Goioerê article is included
+        const hasGoioereArticle = parsed.some(a => a.categoryId === 'cat-goioere');
+        if (!hasGoioereArticle) {
+          const goioereArticles = initialArticles.filter(a => a.categoryId === 'cat-goioere');
+          if (goioereArticles.length > 0) {
+            parsed = [...goioereArticles, ...parsed];
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          this.saveArticles(parsed);
         }
         return parsed;
       }
@@ -77,7 +151,14 @@ export const storageService = {
   },
 
   getArticleBySlug(slug: string): Article | undefined {
-    return this.getArticles().find(a => a.slug === slug);
+    if (!slug) return undefined;
+    const clean = slugify(slug);
+    return this.getArticles().find(a => 
+      a.slug === slug || 
+      slugify(a.slug || '') === clean || 
+      slugify(a.title || '') === clean || 
+      a.id === slug
+    );
   },
 
   saveArticle(article: Partial<Article> & { title: string; categoryId: string }): Article {
@@ -162,19 +243,28 @@ export const storageService = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
       if (data) {
-        const parsed: Category[] = JSON.parse(data);
-        const hasPodcast = parsed.some(c => c.slug === 'podcast' || c.id === 'cat-podcast');
-        if (!hasPodcast) {
-          const podcastCat: Category = {
-            id: 'cat-podcast',
-            name: 'Podcast',
-            slug: 'podcast',
-            order: parsed.length + 1,
-            color: '#8b5cf6',
-            description: 'Galeria de vídeos e episódios com links diretos do YouTube',
-            showOnHome: true,
-          };
-          parsed.push(podcastCat);
+        let parsed: Category[] = JSON.parse(data);
+        let changed = false;
+
+        // Ensure all default categories (goioere, estado, podcast, etc.) are present
+        initialCategories.forEach(initCat => {
+          const exists = parsed.some(c => c.slug === initCat.slug || c.id === initCat.id);
+          if (!exists) {
+            parsed.push(initCat);
+            changed = true;
+          }
+        });
+
+        // Ensure each category has a clean slug
+        parsed = parsed.map(c => {
+          if (!c.slug) {
+            changed = true;
+            return { ...c, slug: slugify(c.name) };
+          }
+          return c;
+        });
+
+        if (changed) {
           this.saveCategories(parsed);
         }
         return parsed;
@@ -184,6 +274,17 @@ export const storageService = {
     }
     this.saveCategories(initialCategories);
     return initialCategories;
+  },
+
+  getCategoryBySlug(slug: string): Category | undefined {
+    if (!slug) return undefined;
+    const clean = slugify(slug);
+    return this.getCategories().find(c =>
+      c.slug === slug ||
+      slugify(c.slug || '') === clean ||
+      slugify(c.name || '') === clean ||
+      c.id === slug
+    );
   },
 
   saveCategories(categories: Category[]): void {

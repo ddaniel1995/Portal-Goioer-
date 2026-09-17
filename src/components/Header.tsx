@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Menu, X, Clock, TrendingUp, Calendar, ArrowRight, Store } from 'lucide-react';
 import { Category, VisualIdentity, BusinessGuideConfig } from '../types';
 import { Logo } from './Logo';
@@ -26,6 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   onSearch,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -47,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
     e.preventDefault();
     if (searchQuery.trim()) {
       onSearch(searchQuery.trim());
+      navigate(`/busca?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowMobileSearch(false);
       setMobileMenuOpen(false);
     }
@@ -100,9 +104,14 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Logo */}
-        <div onClick={onGoHome} className="cursor-pointer shrink-0 py-1 transition-all">
+        <Link 
+          to="/" 
+          onClick={onGoHome} 
+          className="cursor-pointer shrink-0 py-1 transition-all block"
+          title="Página Inicial"
+        >
           <Logo identity={identity} variant="color" />
-        </div>
+        </Link>
 
         {/* Desktop Search Bar */}
         <div className="hidden md:flex flex-1 max-w-md mx-6">
@@ -117,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-red-600 text-white rounded-full text-xs font-semibold hover:bg-red-700 transition-colors"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-red-600 text-white rounded-full text-xs font-semibold hover:bg-red-700 transition-colors cursor-pointer"
             >
               Buscar
             </button>
@@ -135,17 +144,14 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           
           <div className="hidden lg:flex items-center gap-2">
-            <a
-              href="#ultimas-noticias"
-              onClick={(e) => {
-                e.preventDefault();
-                onSelectCategory('cat-ultimas');
-              }}
+            <Link
+              to="/noticias"
+              onClick={() => onSelectCategory('cat-ultimas')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-bold hover:bg-red-100 transition-colors"
             >
               <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
               Últimas Notícias
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -178,63 +184,64 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-7xl mx-auto px-4">
           <ul className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none text-sm font-semibold">
             <li>
-              <button
-                type="button"
+              <Link
+                to="/"
                 onClick={onGoHome}
-                className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                  !activeCategoryId
+                className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap inline-block cursor-pointer ${
+                  location.pathname === '/' && !activeCategoryId
                     ? 'text-red-600 font-bold border-b-2 border-red-600'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                 }`}
               >
                 Início
-              </button>
+              </Link>
             </li>
             <li>
-              <button
-                type="button"
+              <Link
+                to="/noticias"
                 onClick={() => onSelectCategory('cat-ultimas')}
                 className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                  activeCategoryId === 'cat-ultimas' || activeCategoryId === 'ultimas'
+                  location.pathname === '/noticias' || activeCategoryId === 'cat-ultimas' || activeCategoryId === 'ultimas'
                     ? 'text-red-600 font-bold border-b-2 border-red-600'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
                 Últimas Notícias
-              </button>
+              </Link>
             </li>
-            {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+            {businessGuideConfig?.enabled !== false && (
               <li>
-                <button
-                  type="button"
+                <Link
+                  to="/guia-empresarial"
                   onClick={onOpenBusinessGuide}
                   className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                    isBusinessGuideActive
+                    location.pathname.startsWith('/guia-empresarial') || isBusinessGuideActive
                       ? 'text-red-600 font-bold border-b-2 border-red-600'
                       : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                   }`}
                 >
                   <Store className="w-4 h-4 text-emerald-600" />
                   <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
-                </button>
+                </Link>
               </li>
             )}
             {menuCategories.map((cat) => {
-              const isActive = activeCategoryId === cat.id || activeCategoryId === cat.slug;
+              const catSlug = cat.slug || cat.id;
+              const isActive = location.pathname === `/noticias/${catSlug}` || activeCategoryId === cat.id || activeCategoryId === cat.slug;
               return (
                 <li key={cat.id}>
-                  <button
-                    type="button"
+                  <Link
+                    to={`/noticias/${catSlug}`}
                     onClick={() => onSelectCategory(cat.id)}
-                    className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap inline-block cursor-pointer ${
                       isActive
                         ? 'text-red-600 font-bold border-b-2 border-red-600'
                         : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                     }`}
                   >
                     {cat.name}
-                  </button>
+                  </Link>
                 </li>
               );
             })}
@@ -242,48 +249,54 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </nav>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile drawer menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[60px] bg-slate-900/60 backdrop-blur-xs z-50 animate-fadeIn">
-          <div className="bg-white w-4/5 max-w-sm h-full shadow-2xl p-5 overflow-y-auto flex flex-col justify-between">
+        <div className="md:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white w-4/5 max-w-sm h-full p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
             <div>
-              <div className="pb-4 mb-4 border-b border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Menu de Categorias
-                </span>
+              <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+                  <Logo identity={identity} variant="color" size="sm" />
+                </Link>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-700"
+                  className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
+              <div className="py-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Editorias & Menus
+                </p>
+              </div>
+
               <ul className="space-y-1">
                 <li>
-                  <button
-                    type="button"
+                  <Link
+                    to="/"
                     onClick={() => {
                       onGoHome();
                       setMobileMenuOpen(false);
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-semibold flex items-center justify-between cursor-pointer ${
-                      !activeCategoryId ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
+                      location.pathname === '/' && !activeCategoryId ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
                     }`}
                   >
                     <span>Início</span>
                     <ArrowRight className="w-4 h-4 opacity-50" />
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button
-                    type="button"
+                  <Link
+                    to="/noticias"
                     onClick={() => {
                       onSelectCategory('cat-ultimas');
                       setMobileMenuOpen(false);
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-semibold flex items-center justify-between cursor-pointer ${
-                      activeCategoryId === 'cat-ultimas' || activeCategoryId === 'ultimas' ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
+                      location.pathname === '/noticias' || activeCategoryId === 'cat-ultimas' || activeCategoryId === 'ultimas' ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -291,18 +304,18 @@ export const Header: React.FC<HeaderProps> = ({
                       Últimas Notícias
                     </span>
                     <ArrowRight className="w-4 h-4 opacity-50" />
-                  </button>
+                  </Link>
                 </li>
-                {businessGuideConfig?.enabled !== false && onOpenBusinessGuide && (
+                {businessGuideConfig?.enabled !== false && (
                   <li>
-                    <button
-                      type="button"
+                    <Link
+                      to="/guia-empresarial"
                       onClick={() => {
-                        onOpenBusinessGuide();
+                        if (onOpenBusinessGuide) onOpenBusinessGuide();
                         setMobileMenuOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-semibold flex items-center justify-between cursor-pointer ${
-                        isBusinessGuideActive ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
+                        location.pathname.startsWith('/guia-empresarial') || isBusinessGuideActive ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-800 hover:bg-slate-50'
                       }`}
                     >
                       <span className="flex items-center gap-2">
@@ -310,15 +323,16 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>{businessGuideConfig?.tabName || 'Guia Empresarial'}</span>
                       </span>
                       <ArrowRight className="w-4 h-4 opacity-50" />
-                    </button>
+                    </Link>
                   </li>
                 )}
                 {menuCategories.map((cat) => {
-                  const isActive = activeCategoryId === cat.id || activeCategoryId === cat.slug;
+                  const catSlug = cat.slug || cat.id;
+                  const isActive = location.pathname === `/noticias/${catSlug}` || activeCategoryId === cat.id || activeCategoryId === cat.slug;
                   return (
                     <li key={cat.id}>
-                      <button
-                        type="button"
+                      <Link
+                        to={`/noticias/${catSlug}`}
                         onClick={() => {
                           onSelectCategory(cat.id);
                           setMobileMenuOpen(false);
@@ -329,7 +343,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <span>{cat.name}</span>
                         <ArrowRight className="w-4 h-4 opacity-50" />
-                      </button>
+                      </Link>
                     </li>
                   );
                 })}

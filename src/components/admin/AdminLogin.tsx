@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, Mail, Key, ShieldCheck, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Key, ArrowLeft, AlertCircle } from 'lucide-react';
+import { storageService } from '../../services/storageService';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -7,8 +8,8 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel }) => {
-  const [email, setEmail] = useState('admin@portal.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,19 +19,19 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
     setError('');
 
     setTimeout(() => {
-      // Standard credentials check (allows admin@portal.com / admin123 or any user-saved credentials)
-      if (email.trim() && password.trim().length >= 4) {
+      const isValid = storageService.validateAdminCredentials(email, password);
+      if (isValid) {
         localStorage.setItem('portal_admin_session', JSON.stringify({
           logged: true,
-          email,
+          email: email.trim(),
           time: new Date().toISOString()
         }));
         onLoginSuccess();
       } else {
-        setError('Credenciais inválidas. Utilize as credenciais de demonstração.');
+        setError('E-mail ou senha incorretos. Verifique os dados digitados.');
         setIsLoading(false);
       }
-    }, 400);
+    }, 300);
   };
 
   return (
@@ -96,16 +97,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
               />
               <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
-          </div>
-
-          {/* Preset hint box */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-slate-700">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Credenciais de Demonstração Rápidas:</span>
-            </div>
-            <p className="font-mono text-[11px] text-slate-700">E-mail: <strong>admin@portal.com</strong></p>
-            <p className="font-mono text-[11px] text-slate-700">Senha: <strong>admin123</strong></p>
           </div>
 
           <div className="pt-2">

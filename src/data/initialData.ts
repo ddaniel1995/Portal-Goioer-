@@ -2,17 +2,46 @@ import { Article, Category, Banner, VisualIdentity, FacebookConfig, SitePopup } 
 
 export const initialCategories: Category[] = [
   { id: 'cat-politica', name: 'Política', slug: 'politica', order: 1, color: '#2563eb', description: 'Notícias do cenário político nacional e internacional', showOnHome: true },
-  { id: 'cat-economia', name: 'Economia', slug: 'economia', order: 2, color: '#059669', description: 'Mercado financeiro, negócios e finanças pessoais', showOnHome: true },
-  { id: 'cat-educacao', name: 'Educação', slug: 'educacao', order: 3, color: '#d97706', description: 'Inovações no ensino, vestibulares e universidades', showOnHome: true },
-  { id: 'cat-saude', name: 'Saúde', slug: 'saude', order: 4, color: '#dc2626', description: 'Medicina, bem-estar, vacinas e qualidade de vida', showOnHome: true },
-  { id: 'cat-esportes', name: 'Esportes', slug: 'esportes', order: 5, color: '#0891b2', description: 'Futebol, olimpíadas e cobertura esportiva', showOnHome: true },
-  { id: 'cat-cultura', name: 'Cultura', slug: 'cultura', order: 6, color: '#7c3aed', description: 'Artes, literatura, cinema e patrimônio histórico', showOnHome: true },
-  { id: 'cat-cidade', name: 'Cidade', slug: 'cidade', order: 7, color: '#4b5563', description: 'Mobilidade urbana, obras, trânsito e comunidade', showOnHome: true },
-  { id: 'cat-entretenimento', name: 'Entretenimento', slug: 'entretenimento', order: 8, color: '#db2777', description: 'Celebridades, streaming, séries e eventos', showOnHome: true },
-  { id: 'cat-podcast', name: 'Podcast', slug: 'podcast', order: 9, color: '#8b5cf6', description: 'Galeria de episódios em vídeo com debates e entrevistas exclusivas', showOnHome: true },
+  { id: 'cat-goioere', name: 'Goioerê', slug: 'goioere', order: 2, color: '#059669', description: 'Notícias de Goioerê, comunidade, obras e acontecimentos locais', showOnHome: true },
+  { id: 'cat-estado', name: 'Estado', slug: 'estado', order: 3, color: '#0284c7', description: 'Cobertura completa do Paraná e cidades da região', showOnHome: true },
+  { id: 'cat-esportes', name: 'Esportes', slug: 'esportes', order: 4, color: '#0891b2', description: 'Futebol, campeonatos regionais e cobertura esportiva', showOnHome: true },
+  { id: 'cat-entretenimento', name: 'Entretenimento', slug: 'entretenimento', order: 5, color: '#db2777', description: 'Celebridades, streaming, séries, shows e eventos', showOnHome: true },
+  { id: 'cat-economia', name: 'Economia', slug: 'economia', order: 6, color: '#0d9488', description: 'Mercado financeiro, negócios, agronegócio e finanças pessoais', showOnHome: true },
+  { id: 'cat-educacao', name: 'Educação', slug: 'educacao', order: 7, color: '#d97706', description: 'Inovações no ensino, vestibulares e universidades', showOnHome: true },
+  { id: 'cat-saude', name: 'Saúde', slug: 'saude', order: 8, color: '#dc2626', description: 'Medicina, bem-estar, vacinas e qualidade de vida', showOnHome: true },
+  { id: 'cat-cultura', name: 'Cultura', slug: 'cultura', order: 9, color: '#7c3aed', description: 'Artes, literatura, cinema e patrimônio histórico', showOnHome: true },
+  { id: 'cat-podcast', name: 'Podcast', slug: 'podcast', order: 10, color: '#8b5cf6', description: 'Galeria de episódios em vídeo com debates e entrevistas exclusivas', showOnHome: true },
 ];
 
 export const initialArticles: Article[] = [
+  {
+    id: 'art-prefeito-goioere',
+    title: 'Prefeito anuncia novo projeto de modernização e infraestrutura para Goioerê',
+    slug: 'prefeito-anuncia-novo-projeto-de-modernizacao-e-infraestrutura-para-goioere',
+    subtitle: 'Pacote de obras inclui pavimentação asfáltica, iluminação pública em LED e revitalização de praças nos bairros.',
+    content: `<h2>Investimentos históricos em desenvolvimento urbano</h2>
+<p>Em coletiva de imprensa realizada no Paço Municipal de Goioerê, o prefeito anunciou um novo e abrangente pacote de investimentos em infraestrutura urbana e qualidade de vida para a população.</p>
+<p>O projeto contempla mais de 30 mil metros quadrados de novo recape asfáltico, ampliação da rede de iluminação em LED e a reforma completa de espaços de convivência comunitária nos principais bairros da cidade.</p>
+<blockquote>"Goioerê vive um momento especial de crescimento. Nosso compromisso é transformar a infraestrutura da cidade, gerando empregos e valorizando o comércio e a vida de cada família", ressaltou o chefe do Executivo municipal.</blockquote>
+<h3>Etapas e cronograma das obras</h3>
+<p>As equipes técnicas da Secretaria de Obras já deram início ao mapeamento topográfico e as intervenções começarão pelas vias de maior tráfego de transporte coletivo e escoamento da produção rural.</p>`,
+    categoryId: 'cat-goioere',
+    categoryName: 'Goioerê',
+    featuredImage: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=1200&auto=format&fit=crop',
+    imageCaption: 'Apresentação do projeto de infraestrutura urbana em Goioerê. Foto: Divulgação',
+    additionalImages: [
+      'https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?q=80&w=800&auto=format&fit=crop'
+    ],
+    publishedAt: '2026-09-15T10:00:00Z',
+    author: 'Equipe de Jornalismo',
+    authorRole: 'Redação Goioerê',
+    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+    status: 'published',
+    views: 2840,
+    isHighlight: true,
+    facebookAutoPublish: false,
+    facebookPublished: true,
+  },
   {
     id: 'art-1',
     title: 'Congresso aprova novo marco da transição energética com foco em energias limpas',

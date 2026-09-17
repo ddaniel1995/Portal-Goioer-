@@ -15,39 +15,52 @@ import {
   Layers
 } from 'lucide-react';
 import { BusinessStore, BusinessProductService, BusinessGuideConfig } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 interface BusinessDirectoryProps {
   config: BusinessGuideConfig;
-  stores: BusinessStore[];
-  products: BusinessProductService[];
-  onOpenStore: (storeSlug: string) => void;
-  onGoHome: () => void;
+  stores?: BusinessStore[];
+  products?: BusinessProductService[];
+  onOpenStore?: (storeSlug: string) => void;
+  onSelectStore?: (storeSlug: string) => void;
+  onGoHome?: () => void;
 }
 
 export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
   config,
-  stores,
-  products,
+  stores = [],
+  products = [],
   onOpenStore,
+  onSelectStore,
   onGoHome,
 }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const safeStores = stores || [];
+  const safeProducts = products || [];
+
+  const handleOpenStoreClick = (slug: string) => {
+    if (onOpenStore) onOpenStore(slug);
+    if (onSelectStore) onSelectStore(slug);
+    navigate(`/guia-empresarial/${slug}`);
+  };
 
   // Available categories from active stores
   const categories = useMemo(() => {
     const set = new Set<string>();
-    stores.forEach(s => {
+    safeStores.forEach(s => {
       if (s.active !== false && s.category) {
         set.add(s.category);
       }
     });
     return Array.from(set);
-  }, [stores]);
+  }, [safeStores]);
 
   // Filtered stores
   const filteredStores = useMemo(() => {
-    return stores.filter(store => {
+    return safeStores.filter(store => {
       if (store.active === false) return false;
 
       // Category filter
@@ -58,16 +71,16 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesName = store.name.toLowerCase().includes(query);
+        const matchesName = (store.name || '').toLowerCase().includes(query);
         const matchesDesc = (store.description || '').toLowerCase().includes(query);
         const matchesCat = (store.category || '').toLowerCase().includes(query);
         const matchesSegment = (store.segment || '').toLowerCase().includes(query);
         const matchesCity = (store.city || '').toLowerCase().includes(query);
 
         // Also check if any product in this store matches
-        const storeProds = products.filter(p => p.businessId === store.id);
+        const storeProds = safeProducts.filter(p => p.businessId === store.id);
         const matchesProduct = storeProds.some(p => 
-          p.name.toLowerCase().includes(query) || 
+          (p.name || '').toLowerCase().includes(query) || 
           (p.description || '').toLowerCase().includes(query)
         );
 
@@ -78,12 +91,12 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
 
       return true;
     });
-  }, [stores, products, selectedCategory, searchQuery]);
+  }, [safeStores, safeProducts, selectedCategory, searchQuery]);
 
   // Featured stores
   const featuredStores = useMemo(() => {
-    return stores.filter(s => s.active !== false && s.featured);
-  }, [stores]);
+    return safeStores.filter(s => s.active !== false && s.featured);
+  }, [safeStores]);
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-20 animate-fadeIn">
@@ -141,11 +154,11 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
-            Todas as Lojas ({stores.filter(s => s.active !== false).length})
+            Todas as Lojas ({safeStores.filter(s => s.active !== false).length})
           </button>
 
           {categories.map((cat) => {
-            const count = stores.filter(s => s.active !== false && s.category === cat).length;
+            const count = safeStores.filter(s => s.active !== false && s.category === cat).length;
             return (
               <button
                 key={cat}
@@ -178,16 +191,16 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {featuredStores.slice(0, 2).map((store) => {
-                const cleanPhone = store.whatsapp.replace(/\D/g, '');
+                const cleanPhone = (store.whatsapp || '').replace(/\D/g, '');
                 const directWhatsapp = cleanPhone 
                   ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${store.name}! Vi seu destaque no ${config.tabName || 'Guia Empresarial'}.`)}` 
                   : '#';
-                const storeProds = products.filter(p => p.businessId === store.id && p.active !== false);
+                const storeProds = safeProducts.filter(p => p.businessId === store.id && p.active !== false);
 
                 return (
                   <div
                     key={store.id}
-                    onClick={() => onOpenStore(store.slug)}
+                    onClick={() => handleOpenStoreClick(store.slug)}
                     className="group bg-white rounded-2xl border border-amber-200/80 hover:border-red-300 p-5 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-bl-xl shadow-xs flex items-center gap-1">
@@ -287,16 +300,16 @@ export const BusinessDirectory: React.FC<BusinessDirectoryProps> = ({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredStores.map((store) => {
-                const cleanPhone = store.whatsapp.replace(/\D/g, '');
+                const cleanPhone = (store.whatsapp || '').replace(/\D/g, '');
                 const directWhatsapp = cleanPhone 
                   ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${store.name}! Vi seu minisite no ${config.tabName || 'Guia Empresarial'}.`)}` 
                   : '#';
-                const storeProds = products.filter(p => p.businessId === store.id && p.active !== false);
+                const storeProds = safeProducts.filter(p => p.businessId === store.id && p.active !== false);
 
                 return (
                   <div
                     key={store.id}
-                    onClick={() => onOpenStore(store.slug)}
+                    onClick={() => handleOpenStoreClick(store.slug)}
                     className="group bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer transform hover:-translate-y-1"
                   >
                     {/* Store Card Banner */}

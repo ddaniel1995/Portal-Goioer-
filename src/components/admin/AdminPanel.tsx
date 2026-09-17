@@ -12,7 +12,8 @@ import {
   CheckCircle,
   Plus,
   Sparkles,
-  Store
+  Store,
+  Key
 } from 'lucide-react';
 import { Article, Category, Banner, VisualIdentity, FacebookConfig, BannerPosition } from '../../types';
 import { AdminDashboard } from './AdminDashboard';
@@ -23,8 +24,9 @@ import { AdminIdentity } from './AdminIdentity';
 import { AdminFacebook } from './AdminFacebook';
 import { AdminPopup } from './AdminPopup';
 import { AdminBusinesses } from './AdminBusinesses';
+import { AdminCredentialsManager } from './AdminCredentials';
 
-type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'popup' | 'businesses' | 'facebook';
+type AdminTab = 'dashboard' | 'articles' | 'categories' | 'banners' | 'identity' | 'popup' | 'businesses' | 'facebook' | 'security';
 
 interface AdminPanelProps {
   articles: Article[];
@@ -219,6 +221,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                activeTab === 'security'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5 text-amber-300" />
+              <span>Redefinir Login e Senha</span>
+            </button>
           </div>
         </div>
       </header>
@@ -296,6 +310,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             articles={articles}
             onRefresh={onRefreshData}
           />
+        )}
+
+        {activeTab === 'security' && (
+          <AdminCredentialsManager />
         )}
       </main>
 
